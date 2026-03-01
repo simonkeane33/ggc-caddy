@@ -1,0 +1,36 @@
+{
+  "course": {
+    "id": "greystones_gc",
+    "name": "Greystones Golf Club",
+    "units": "m",
+    "source": "https://www.greystonesgc.com/scorecards/"
+  },
+  "tees": [
+    {"id": "blue", "name": "Blue", "men": {"courseRating": 68.4, "slopeRating": 123}},
+    {"id": "green", "name": "Green", "men": {"courseRating": 67.8, "slopeRating": 121}},
+    {"id": "red", "name": "Red"}
+  ],
+  "holes": [
+    {"number": 1, "name": "Pigs Hollow", "par": {"blue": 3, "green": 3, "red": 3}, "si": {"blue": 13, "green": 13, "red": 15}, "distance_m": {"blue": 160, "green": 150, "red": 128}, "flyover": "https://www.youtube.com/embed/f2xf0un1LtA"},
+    {"number": 2, "name": "Crowe Abbey", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 5, "green": 5, "red": 5}, "distance_m": {"blue": 391, "green": 382, "red": 359}, "flyover": "https://www.youtube.com/embed/sqZd9w8T9D8"},
+    {"number": 3, "name": "Sugar Loaf", "par": {"blue": 4, "green": 4, "red": 5}, "si": {"blue": 1, "green": 1, "red": 13}, "distance_m": {"blue": 364, "green": 355, "red": 343}, "flyover": "https://www.youtube.com/embed/mkJqwC-9dhI"},
+    {"number": 4, "name": "Garden", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 11, "green": 11, "red": 9}, "distance_m": {"blue": 329, "green": 322, "red": 295}, "flyover": "https://www.youtube.com/embed/dT6ea1G5Kjs"},
+    {"number": 5, "name": "La Touche", "par": {"blue": 3, "green": 3, "red": 3}, "si": {"blue": 17, "green": 17, "red": 17}, "distance_m": {"blue": 113, "green": 107, "red": 101}, "flyover": "https://www.youtube.com/embed/9SoZYOyF1lw"},
+    {"number": 6, "name": "Campbells", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 3, "green": 3, "red": 3}, "distance_m": {"blue": 336, "green": 325, "red": 294}, "flyover": "https://www.youtube.com/embed/_W7kRtAp6GY"},
+    {"number": 7, "name": "View Rock", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 9, "green": 9, "red": 7}, "distance_m": {"blue": 279, "green": 276, "red": 265}, "flyover": "https://www.youtube.com/embed/6fFWzJYrxBQ"},
+    {"number": 8, "name": "Burnaby", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 15, "green": 15, "red": 11}, "distance_m": {"blue": 333, "green": 324, "red": 309}, "flyover": "https://www.youtube.com/embed/cOCFpvGeDtI"},
+    {"number": 9, "name": "The Bell", "par": {"blue": 5, "green": 5, "red": 5}, "si": {"blue": 7, "green": 7, "red": 1}, "distance_m": {"blue": 406, "green": 400, "red": 383}, "flyover": "https://www.youtube.com/embed/B_zMhzRUnG8"},
+    {"number": 10, "name": "Ridge", "par": {"blue": 4, "green": 4, "red": 5}, "si": {"blue": 2, "green": 2, "red": 14}, "distance_m": {"blue": 405, "green": 399, "red": 396}, "flyover": "https://www.youtube.com/embed/o-d1fzXf4ok"},
+    {"number": 11, "name": "Oozler", "par": {"blue": 3, "green": 3, "red": 3}, "si": {"blue": 16, "green": 16, "red": 12}, "distance_m": {"blue": 161, "green": 151, "red": 142}, "flyover": "https://www.youtube.com/embed/c3YE8sAshH0"},
+    {"number": 12, "name": "Spinney", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 8, "green": 8, "red": 2}, "distance_m": {"blue": 300, "green": 293, "red": 289}, "flyover": "https://www.youtube.com/embed/V_n2KlP1mzA"},
+    {"number": 13, "name": "Narrows", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 10, "green": 10, "red": 8}, "distance_m": {"blue": 308, "green": 297, "red": 287}, "flyover": "https://www.youtube.com/embed/u0ovkTXKRAQ"},
+    {"number": 14, "name": "Dolly", "par": {"blue": 3, "green": 3, "red": 3}, "si": {"blue": 18, "green": 18, "red": 18}, "distance_m": {"blue": 132, "green": 122, "red": 107}, "flyover": "https://www.youtube.com/embed/Dm5LYda6SJY"},
+    {"number": 15, "name": "Mill", "par": {"blue": 5, "green": 5, "red": 5}, "si": {"blue": 6, "green": 6, "red": 4}, "distance_m": {"blue": 474, "green": 468, "red": 395}, "flyover": "https://www.youtube.com/embed/9ENMKOXkbtI"},
+    {"number": 16, "name": "Rookery", "par": {"blue": 3, "green": 3, "red": 3}, "si": {"blue": 14, "green": 14, "red": 16}, "distance_m": {"blue": 139, "green": 134, "red": 129}, "flyover": "https://www.youtube.com/embed/RIsIsbbwQuk"},
+    {"number": 17, "name": "Big Tree", "par": {"blue": 4, "green": 4, "red": 5}, "si": {"blue": 4, "green": 4, "red": 10}, "distance_m": {"blue": 350, "green": 349, "red": 347}, "flyover": "https://www.youtube.com/embed/5pvHimaS0mY"},
+    {"number": 18, "name": "Farm", "par": {"blue": 4, "green": 4, "red": 4}, "si": {"blue": 12, "green": 12, "red": 6}, "distance_m": {"blue": 335, "green": 330, "red": 321}, "flyover": "https://www.youtube.com/embed/NWYgdlealfE"}
+  ],
+  "totals": {
+    "distance_m": {"blue": 5315, "green": 5184, "red": 4890}
+  }
+}

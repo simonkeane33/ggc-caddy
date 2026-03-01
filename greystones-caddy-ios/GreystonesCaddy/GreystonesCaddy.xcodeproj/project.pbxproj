@@ -1,0 +1,738 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		217EC7062F4D0D3200EAF08D /* greystones_course.json in Resources */ = {isa = PBXBuildFile; fileRef = 217EC7052F4D0D3200EAF08D /* greystones_course.json */; };
+		217EC7072F4D0D3200EAF08D /* default.csv in Resources */ = {isa = PBXBuildFile; fileRef = 217EC7042F4D0D3200EAF08D /* default.csv */; };
+		2182B20F2F4E00AA0022DA57 /* H01_green.xyz.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2182B20E2F4E00AA0022DA57 /* H01_green.xyz.txt */; };
+		21CBA4FC2F49271D0034DCCF /* GreystonesCaddyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 21CBA4FB2F49271D0034DCCF /* GreystonesCaddyCore */; };
+		21CBA4FF2F49275D0034DCCF /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 21CBA4FE2F49275D0034DCCF /* GRDB */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		21CBA4DE2F4925510034DCCF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 21CBA4C82F49254B0034DCCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21CBA4CF2F49254B0034DCCF;
+			remoteInfo = GreystonesCaddy;
+		};
+		21CBA4E82F4925520034DCCF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 21CBA4C82F49254B0034DCCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21CBA4CF2F49254B0034DCCF;
+			remoteInfo = GreystonesCaddy;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		217EC6E62F4D050200EAF08D /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
+		217EC6E72F4D050200EAF08D /* Bag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bag.swift; sourceTree = "<group>"; };
+		217EC6E82F4D050200EAF08D /* CaddyNotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaddyNotes.swift; sourceTree = "<group>"; };
+		217EC6E92F4D050200EAF08D /* Clubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clubs.swift; sourceTree = "<group>"; };
+		217EC6EA2F4D050200EAF08D /* CourseDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseDataImporter.swift; sourceTree = "<group>"; };
+		217EC6EB2F4D050200EAF08D /* CourseIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIntelligence.swift; sourceTree = "<group>"; };
+		217EC6EC2F4D050200EAF08D /* CourseLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseLoader.swift; sourceTree = "<group>"; };
+		217EC6ED2F4D050200EAF08D /* CourseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseModels.swift; sourceTree = "<group>"; };
+		217EC6EE2F4D050200EAF08D /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
+		217EC6EF2F4D050200EAF08D /* DistanceAdjustment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceAdjustment.swift; sourceTree = "<group>"; };
+		217EC6F02F4D050200EAF08D /* ElevationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationService.swift; sourceTree = "<group>"; };
+		217EC6F12F4D050200EAF08D /* Events.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Events.swift; sourceTree = "<group>"; };
+		217EC6F22F4D050200EAF08D /* Geo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geo.swift; sourceTree = "<group>"; };
+		217EC6F32F4D050200EAF08D /* GreenHeatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenHeatmap.swift; sourceTree = "<group>"; };
+		217EC6F42F4D050200EAF08D /* Handicap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Handicap.swift; sourceTree = "<group>"; };
+		217EC6F52F4D050200EAF08D /* HoleGreenCenters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleGreenCenters.swift; sourceTree = "<group>"; };
+		217EC6F62F4D050200EAF08D /* HoleGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleGuide.swift; sourceTree = "<group>"; };
+		217EC6F72F4D050200EAF08D /* HoleInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleInsights.swift; sourceTree = "<group>"; };
+		217EC6F82F4D050200EAF08D /* HolePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolePlan.swift; sourceTree = "<group>"; };
+		217EC6F92F4D050200EAF08D /* HoleScores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleScores.swift; sourceTree = "<group>"; };
+		217EC6FA2F4D050200EAF08D /* Rounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rounds.swift; sourceTree = "<group>"; };
+		217EC6FB2F4D050200EAF08D /* ShotType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotType.swift; sourceTree = "<group>"; };
+		217EC6FC2F4D050200EAF08D /* StatsDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsDatabase.swift; sourceTree = "<group>"; };
+		217EC6FD2F4D050200EAF08D /* StatsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsEngine.swift; sourceTree = "<group>"; };
+		217EC6FE2F4D050200EAF08D /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		217EC7042F4D0D3200EAF08D /* default.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = default.csv; sourceTree = "<group>"; };
+		217EC7052F4D0D3200EAF08D /* greystones_course.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = greystones_course.json; sourceTree = "<group>"; };
+		217EC7082F4D1B9900EAF08D /* satellite.styl */ = {isa = PBXFileReference; lastKnownFileType = text; path = satellite.styl; sourceTree = "<group>"; };
+		217EC7092F4D1B9900EAF08D /* satellite@2x.styl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "satellite@2x.styl"; sourceTree = "<group>"; };
+		2182B20E2F4E00AA0022DA57 /* H01_green.xyz.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = H01_green.xyz.txt; sourceTree = "<group>"; };
+		21CBA4D02F49254C0034DCCF /* GreystonesCaddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GreystonesCaddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		21CBA4DD2F4925510034DCCF /* GreystonesCaddyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreystonesCaddyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		21CBA4E72F4925520034DCCF /* GreystonesCaddyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreystonesCaddyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		21D901D82F4D9A150014F1B1 /* Exceptions for "GreystonesCaddy" folder in "GreystonesCaddy" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/satellite.styl,
+				"Resources/satellite@2x.styl",
+			);
+			target = 21CBA4CF2F49254B0034DCCF /* GreystonesCaddy */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		21CBA4D22F49254C0034DCCF /* GreystonesCaddy */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				21D901D82F4D9A150014F1B1 /* Exceptions for "GreystonesCaddy" folder in "GreystonesCaddy" target */,
+			);
+			path = GreystonesCaddy;
+			sourceTree = "<group>";
+		};
+		21CBA4E02F4925510034DCCF /* GreystonesCaddyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GreystonesCaddyTests;
+			sourceTree = "<group>";
+		};
+		21CBA4EA2F4925520034DCCF /* GreystonesCaddyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GreystonesCaddyUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		21CBA4CD2F49254B0034DCCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21CBA4FC2F49271D0034DCCF /* GreystonesCaddyCore in Frameworks */,
+				21CBA4FF2F49275D0034DCCF /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4DA2F4925510034DCCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4E42F4925520034DCCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		217EC6E52F4D050200EAF08D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				217EC7082F4D1B9900EAF08D /* satellite.styl */,
+				217EC7092F4D1B9900EAF08D /* satellite@2x.styl */,
+				217EC7042F4D0D3200EAF08D /* default.csv */,
+				217EC7052F4D0D3200EAF08D /* greystones_course.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		217EC6FF2F4D050200EAF08D /* GreystonesCaddyCore */ = {
+			isa = PBXGroup;
+			children = (
+				217EC6E52F4D050200EAF08D /* Resources */,
+				217EC6E62F4D050200EAF08D /* Analytics.swift */,
+				217EC6E72F4D050200EAF08D /* Bag.swift */,
+				217EC6E82F4D050200EAF08D /* CaddyNotes.swift */,
+				217EC6E92F4D050200EAF08D /* Clubs.swift */,
+				217EC6EA2F4D050200EAF08D /* CourseDataImporter.swift */,
+				217EC6EB2F4D050200EAF08D /* CourseIntelligence.swift */,
+				217EC6EC2F4D050200EAF08D /* CourseLoader.swift */,
+				217EC6ED2F4D050200EAF08D /* CourseModels.swift */,
+				217EC6EE2F4D050200EAF08D /* Database.swift */,
+				217EC6EF2F4D050200EAF08D /* DistanceAdjustment.swift */,
+				217EC6F02F4D050200EAF08D /* ElevationService.swift */,
+				217EC6F12F4D050200EAF08D /* Events.swift */,
+				217EC6F22F4D050200EAF08D /* Geo.swift */,
+				217EC6F32F4D050200EAF08D /* GreenHeatmap.swift */,
+				217EC6F42F4D050200EAF08D /* Handicap.swift */,
+				217EC6F52F4D050200EAF08D /* HoleGreenCenters.swift */,
+				217EC6F62F4D050200EAF08D /* HoleGuide.swift */,
+				217EC6F72F4D050200EAF08D /* HoleInsights.swift */,
+				217EC6F82F4D050200EAF08D /* HolePlan.swift */,
+				217EC6F92F4D050200EAF08D /* HoleScores.swift */,
+				217EC6FA2F4D050200EAF08D /* Rounds.swift */,
+				217EC6FB2F4D050200EAF08D /* ShotType.swift */,
+				217EC6FC2F4D050200EAF08D /* StatsDatabase.swift */,
+				217EC6FD2F4D050200EAF08D /* StatsEngine.swift */,
+				217EC6FE2F4D050200EAF08D /* WeatherService.swift */,
+			);
+			path = GreystonesCaddyCore;
+			sourceTree = "<group>";
+		};
+		21CBA4C72F49254A0034DCCF = {
+			isa = PBXGroup;
+			children = (
+				21CBA4D22F49254C0034DCCF /* GreystonesCaddy */,
+				21CBA4E02F4925510034DCCF /* GreystonesCaddyTests */,
+				21CBA4EA2F4925520034DCCF /* GreystonesCaddyUITests */,
+				21CBA5022F4929360034DCCF /* Frameworks */,
+				21CBA4D12F49254C0034DCCF /* Products */,
+				217EC6FF2F4D050200EAF08D /* GreystonesCaddyCore */,
+				2182B20E2F4E00AA0022DA57 /* H01_green.xyz.txt */,
+			);
+			sourceTree = "<group>";
+		};
+		21CBA4D12F49254C0034DCCF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				21CBA4D02F49254C0034DCCF /* GreystonesCaddy.app */,
+				21CBA4DD2F4925510034DCCF /* GreystonesCaddyTests.xctest */,
+				21CBA4E72F4925520034DCCF /* GreystonesCaddyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		21CBA5022F4929360034DCCF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		21CBA4CF2F49254B0034DCCF /* GreystonesCaddy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21CBA4F12F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddy" */;
+			buildPhases = (
+				21CBA4CC2F49254B0034DCCF /* Sources */,
+				21CBA4CD2F49254B0034DCCF /* Frameworks */,
+				21CBA4CE2F49254B0034DCCF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				21CBA4D22F49254C0034DCCF /* GreystonesCaddy */,
+			);
+			name = GreystonesCaddy;
+			packageProductDependencies = (
+				21CBA4FB2F49271D0034DCCF /* GreystonesCaddyCore */,
+				21CBA4FE2F49275D0034DCCF /* GRDB */,
+			);
+			productName = GreystonesCaddy;
+			productReference = 21CBA4D02F49254C0034DCCF /* GreystonesCaddy.app */;
+			productType = "com.apple.product-type.application";
+		};
+		21CBA4DC2F4925510034DCCF /* GreystonesCaddyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21CBA4F42F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddyTests" */;
+			buildPhases = (
+				21CBA4D92F4925510034DCCF /* Sources */,
+				21CBA4DA2F4925510034DCCF /* Frameworks */,
+				21CBA4DB2F4925510034DCCF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21CBA4DF2F4925510034DCCF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				21CBA4E02F4925510034DCCF /* GreystonesCaddyTests */,
+			);
+			name = GreystonesCaddyTests;
+			packageProductDependencies = (
+			);
+			productName = GreystonesCaddyTests;
+			productReference = 21CBA4DD2F4925510034DCCF /* GreystonesCaddyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		21CBA4E62F4925520034DCCF /* GreystonesCaddyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21CBA4F72F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddyUITests" */;
+			buildPhases = (
+				21CBA4E32F4925520034DCCF /* Sources */,
+				21CBA4E42F4925520034DCCF /* Frameworks */,
+				21CBA4E52F4925520034DCCF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21CBA4E92F4925520034DCCF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				21CBA4EA2F4925520034DCCF /* GreystonesCaddyUITests */,
+			);
+			name = GreystonesCaddyUITests;
+			packageProductDependencies = (
+			);
+			productName = GreystonesCaddyUITests;
+			productReference = 21CBA4E72F4925520034DCCF /* GreystonesCaddyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		21CBA4C82F49254B0034DCCF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					21CBA4CF2F49254B0034DCCF = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					21CBA4DC2F4925510034DCCF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 21CBA4CF2F49254B0034DCCF;
+					};
+					21CBA4E62F4925520034DCCF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 21CBA4CF2F49254B0034DCCF;
+					};
+				};
+			};
+			buildConfigurationList = 21CBA4CB2F49254B0034DCCF /* Build configuration list for PBXProject "GreystonesCaddy" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 21CBA4C72F49254A0034DCCF;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				21CBA4FA2F49271D0034DCCF /* XCLocalSwiftPackageReference "../GreystonesCaddyCore" */,
+				21CBA4FD2F49275C0034DCCF /* XCRemoteSwiftPackageReference "GRDB" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 21CBA4D12F49254C0034DCCF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				21CBA4CF2F49254B0034DCCF /* GreystonesCaddy */,
+				21CBA4DC2F4925510034DCCF /* GreystonesCaddyTests */,
+				21CBA4E62F4925520034DCCF /* GreystonesCaddyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		21CBA4CE2F49254B0034DCCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				217EC7062F4D0D3200EAF08D /* greystones_course.json in Resources */,
+				2182B20F2F4E00AA0022DA57 /* H01_green.xyz.txt in Resources */,
+				217EC7072F4D0D3200EAF08D /* default.csv in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4DB2F4925510034DCCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4E52F4925520034DCCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		21CBA4CC2F49254B0034DCCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4D92F4925510034DCCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21CBA4E32F4925520034DCCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		21CBA4DF2F4925510034DCCF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 21CBA4CF2F49254B0034DCCF /* GreystonesCaddy */;
+			targetProxy = 21CBA4DE2F4925510034DCCF /* PBXContainerItemProxy */;
+		};
+		21CBA4E92F4925520034DCCF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 21CBA4CF2F49254B0034DCCF /* GreystonesCaddy */;
+			targetProxy = 21CBA4E82F4925520034DCCF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		21CBA4EF2F4925520034DCCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		21CBA4F02F4925520034DCCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		21CBA4F22F4925520034DCCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to log shot positions during a round.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddy;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		21CBA4F32F4925520034DCCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to log shot positions during a round.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddy;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		21CBA4F52F4925520034DCCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GreystonesCaddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GreystonesCaddy";
+			};
+			name = Debug;
+		};
+		21CBA4F62F4925520034DCCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GreystonesCaddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GreystonesCaddy";
+			};
+			name = Release;
+		};
+		21CBA4F82F4925520034DCCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GreystonesCaddy;
+			};
+			name = Debug;
+		};
+		21CBA4F92F4925520034DCCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3F8WAT5B9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sgk.GreystonesCaddyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GreystonesCaddy;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		21CBA4CB2F49254B0034DCCF /* Build configuration list for PBXProject "GreystonesCaddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21CBA4EF2F4925520034DCCF /* Debug */,
+				21CBA4F02F4925520034DCCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21CBA4F12F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21CBA4F22F4925520034DCCF /* Debug */,
+				21CBA4F32F4925520034DCCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21CBA4F42F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21CBA4F52F4925520034DCCF /* Debug */,
+				21CBA4F62F4925520034DCCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21CBA4F72F4925520034DCCF /* Build configuration list for PBXNativeTarget "GreystonesCaddyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21CBA4F82F4925520034DCCF /* Debug */,
+				21CBA4F92F4925520034DCCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		21CBA4FA2F49271D0034DCCF /* XCLocalSwiftPackageReference "../GreystonesCaddyCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../GreystonesCaddyCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		21CBA4FD2F49275C0034DCCF /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		21CBA4FB2F49271D0034DCCF /* GreystonesCaddyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GreystonesCaddyCore;
+		};
+		21CBA4FE2F49275D0034DCCF /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21CBA4FD2F49275C0034DCCF /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 21CBA4C82F49254B0034DCCF /* Project object */;
+}

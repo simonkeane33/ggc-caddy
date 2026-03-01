@@ -1,0 +1,15 @@
+{
+  "originHash" : "c688987c7fb302dad357fdfdd18c7326d1ada766322f46417c844a5bace0ee7c",
+  "pins" : [
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift",
+      "state" : {
+        "branch" : "master",
+        "revision" : "36e30a6f1ef10e4194f6af0cff90888526f0c115"
+      }
+    }
+  ],
+  "version" : 3
+}
