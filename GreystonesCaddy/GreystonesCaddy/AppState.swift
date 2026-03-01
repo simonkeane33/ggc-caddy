@@ -30,7 +30,7 @@ final class AppState: ObservableObject {
 
       // One-time import of high-accuracy GPS coordinates if needed
       if let csvURL = CourseLoader.bundle.url(forResource: "default", withExtension: "csv"),
-         let csvContent = try? String(contentsOf: csvURL) {
+         let csvContent = try? String(contentsOf: csvURL, encoding: .utf8) {
           try? CourseDataImporter.importCSV(csvContent)
           print("DEBUG: Successfully imported high-accuracy coordinates from default.csv")
       } else {

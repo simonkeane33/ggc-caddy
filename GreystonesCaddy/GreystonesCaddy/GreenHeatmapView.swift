@@ -321,7 +321,7 @@ struct GreenHeatmapView: View {
       // Calculate dynamic average slope if we have center/front/back altitude data
       var updatedData = data
       if let greenRec = try? GCDB.shared.fetchGreenCenter(holeNumber: holeNumber),
-         let cAlt = greenRec.centerAlt, let fAlt = greenRec.frontAlt, let bAlt = greenRec.backAlt {
+         let fAlt = greenRec.frontAlt, let bAlt = greenRec.backAlt {
           
           let frontDist = distanceYards(lat1: greenRec.centerLat, lng1: greenRec.centerLng, lat2: greenRec.frontLat ?? 0, lng2: greenRec.frontLng ?? 0)
           let backDist = distanceYards(lat1: greenRec.centerLat, lng1: greenRec.centerLng, lat2: greenRec.backLat ?? 0, lng2: greenRec.backLng ?? 0)

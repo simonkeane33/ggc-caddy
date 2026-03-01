@@ -620,7 +620,7 @@ struct LiveHoleView: View {
     
     // Compute stats for current hole before showing summary
     if let hole = state.currentHole {
-      try? GCDB.shared.computeAndStoreHoleStats(
+      _ = try? GCDB.shared.computeAndStoreHoleStats(
         roundId: roundId,
         holeNumber: state.holeNumber,
         par: hole.par[state.tee]
@@ -638,7 +638,7 @@ struct LiveHoleView: View {
     
     // Compute stats for current hole before showing summary
     if let hole = state.currentHole {
-      try? GCDB.shared.computeAndStoreHoleStats(
+      _ = try? GCDB.shared.computeAndStoreHoleStats(
         roundId: roundId,
         holeNumber: state.holeNumber,
         par: hole.par[state.tee]
@@ -667,7 +667,7 @@ struct LiveHoleView: View {
     
     // Compute stats for current hole before jumping
     if let hole = state.currentHole {
-      try? GCDB.shared.computeAndStoreHoleStats(
+      _ = try? GCDB.shared.computeAndStoreHoleStats(
         roundId: roundId,
         holeNumber: state.holeNumber,
         par: hole.par[state.tee]
@@ -771,7 +771,7 @@ struct LiveHoleView: View {
     do {
       // Compute stats for final hole
       if let hole = state.currentHole {
-        try? GCDB.shared.computeAndStoreHoleStats(
+        _ = try? GCDB.shared.computeAndStoreHoleStats(
           roundId: roundId,
           holeNumber: state.holeNumber,
           par: hole.par[state.tee]
@@ -779,7 +779,7 @@ struct LiveHoleView: View {
       }
       
       // Compute round summary stats
-      try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: state.course)
+      _ = try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: state.course)
       
       try GCDB.shared.endRound(roundId: roundId)
 

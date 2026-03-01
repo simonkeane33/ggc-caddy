@@ -295,9 +295,6 @@ struct HoleAerialView: View {
         // Calculate region
         let centerLat = (g.latitude + tee.latitude) / 2
         let centerLng = (g.longitude + tee.longitude) / 2
-        let spanLat = abs(g.latitude - tee.latitude) * 1.3
-        let spanLng = abs(g.longitude - tee.longitude) * 1.3
-        
         camera = .camera(MapCamera(
             centerCoordinate: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng),
             distance: 800, // Adjust for zoom level
