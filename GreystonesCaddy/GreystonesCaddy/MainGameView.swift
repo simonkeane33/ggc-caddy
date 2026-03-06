@@ -429,18 +429,37 @@ struct MainGameView: View {
   
   private func updateCameraForTarget(_ coord: CLLocationCoordinate2D) {
       if isZoomedOnTarget {
-          camera = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)))
+          guard let teeCoord = teeLocation, let greenCoord = greenCenter else { return }
+          camera = .camera(MapCamera(
+              centerCoordinate: coord,
+              distance: 120,
+              heading: bearing(from: teeCoord, to: greenCoord),
+              pitch: 0
+          ))
       }
   }
   
   private func snapToUser() {
-      if let g = greenCenter, let tee = teeLocation {
-          let centerLat = (g.latitude + tee.latitude) / 2
-          let centerLng = (g.longitude + tee.longitude) / 2
-          let spanLat = abs(g.latitude - tee.latitude) * 1.5
-          let spanLng = abs(g.longitude - tee.longitude) * 1.5
-          camera = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng), span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.005), longitudeDelta: max(spanLng, 0.005))))
-      }
+      let hn = state.holeNumber
+      print("[snapToUser] hole=\(hn) teeRec=\(String(describing: try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .blue)))")
+      guard
+          let teeRec  = (try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .blue))
+                     ?? (try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .green)),
+          let greenRec = try? GCDB.shared.fetchGreenCenter(holeNumber: hn)
+      else { return }
+
+      let teeCoord   = CLLocationCoordinate2D(latitude: teeRec.lat,         longitude: teeRec.lng)
+      let greenCoord = CLLocationCoordinate2D(latitude: greenRec.centerLat, longitude: greenRec.centerLng)
+      let midLat     = (teeCoord.latitude  + greenCoord.latitude)  / 2
+      let midLng     = (teeCoord.longitude + greenCoord.longitude) / 2
+      let heading    = bearing(from: teeCoord, to: greenCoord)
+
+      camera = .camera(MapCamera(
+          centerCoordinate: CLLocationCoordinate2D(latitude: midLat, longitude: midLng),
+          distance: 800,
+          heading: heading,
+          pitch: 0
+      ))
   }
   
   private func refreshStats() {

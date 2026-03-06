@@ -66,6 +66,7 @@ struct GreenMapView: View {
     @State private var mapOffset: CGSize = .zero
     @State private var lastMapScale: CGFloat = 1.0
     @State private var lastMapOffset: CGSize = .zero
+    @State private var canvasRotation: Double = 0
 
     private let darkGray = Color(white: 0.12)
 
@@ -121,7 +122,7 @@ struct GreenMapView: View {
                         }
                         .padding(.trailing, 8)
 
-                        CompassRose(direction: 0)
+                        CompassRose(direction: canvasRotation)
                             .padding(12)
                     }
                     .background(darkGray.opacity(0.9))
@@ -177,7 +178,19 @@ struct GreenMapView: View {
                                 }
                             }
                             .frame(width: geo.size.width, height: geo.size.height)
-                            .clipShape(PerimeterClipShape(perimeter: t.perimeter, bounds: terrainBounds(t)))
+                            .clipShape(
+                                PerimeterClipShape(
+                                    perimeter: t.perimeter,
+                                    worldToView: { worldPoint in
+                                        worldToView(
+                                            terrain: t,
+                                            worldX: worldPoint.x,
+                                            worldZ: worldPoint.y,
+                                            size: geo.size
+                                        )
+                                    }
+                                )
+                            )
                             .scaleEffect(mapScale)
                             .offset(mapOffset)
                             .allowsHitTesting(false)
@@ -207,6 +220,7 @@ struct GreenMapView: View {
                                     .offset(mapOffset)
                             }
                         }
+                        .rotationEffect(.degrees(-canvasRotation), anchor: .center)
                         .frame(width: geo.size.width, height: geo.size.height)
                         .contentShape(Rectangle())
                         .coordinateSpace(name: "greenMap")
@@ -214,6 +228,7 @@ struct GreenMapView: View {
                             layoutSize = geo.size
                             pinPosition = centerOfGreen(terrain: t, size: geo.size)
                             loadSavedPin(terrain: t, size: geo.size)
+                            updateCanvasRotation()
                             slopeData = computeSlopeData(terrain: t, filledHeights: filledHeights, size: geo.size)
                         }
                         .onChange(of: geo.size) { _, newSize in
@@ -261,6 +276,9 @@ struct GreenMapView: View {
         .background(darkGray)
         .navigationTitle("Hole \(holeNumber) Green")
         .onAppear { loadTerrain() }
+        .onChange(of: holeNumber) { _, _ in
+            updateCanvasRotation()
+        }
     }
 
     // MARK: - Layers
@@ -347,8 +365,6 @@ struct GreenMapView: View {
                 for c in 0..<cols {
                     let wx = CGFloat(t.worldX(col: c))
                     let wz = CGFloat(t.worldZ(row: r))
-                    let pt = CGPoint(x: wx, y: wz)
-                    guard GreenTerrainData.pointInPolygon(pt, polygon: t.perimeter) else { continue }
 
                     let h = smoothedHeights[r][c]
                     let norm = elevRange > 0 ? min(1, max(0, Double((h - smoothedMin) / elevRange))) : 0.5
@@ -565,6 +581,20 @@ struct GreenMapView: View {
         }
     }
 
+    private func updateCanvasRotation() {
+        guard let greenRec = try? GCDB.shared.fetchGreenCenter(holeNumber: holeNumber),
+              let frontLat = greenRec.frontLat,
+              let frontLng = greenRec.frontLng,
+              let backLat = greenRec.backLat,
+              let backLng = greenRec.backLng else {
+            canvasRotation = 0
+            return
+        }
+        let front = CLLocationCoordinate2D(latitude: frontLat, longitude: frontLng)
+        let back = CLLocationCoordinate2D(latitude: backLat, longitude: backLng)
+        canvasRotation = bearing(from: front, to: back)
+    }
+
     private func terrainBounds(_ t: GreenTerrainData) -> (minX: CGFloat, maxX: CGFloat, minZ: CGFloat, maxZ: CGFloat) {
         let px = t.perimeter.map(\.x)
         let pz = t.perimeter.map(\.y)
@@ -661,23 +691,16 @@ struct GreenMapView: View {
 
 private struct PerimeterClipShape: Shape {
     let perimeter: [CGPoint]
-    let bounds: (minX: CGFloat, maxX: CGFloat, minZ: CGFloat, maxZ: CGFloat)
+    let worldToView: (CGPoint) -> CGPoint
 
     func path(in rect: CGRect) -> Path {
         guard perimeter.count >= 3 else { return Path(rect) }
 
-        let rangeX = bounds.maxX - bounds.minX
-        let rangeZ = bounds.maxZ - bounds.minZ
-        guard rangeX > 0, rangeZ > 0 else { return Path(rect) }
-
         var points: [CGPoint] = []
         points.reserveCapacity(perimeter.count)
         for pt in perimeter {
-            let u = (pt.x - bounds.minX) / rangeX
-            let v = 1.0 - (pt.y - bounds.minZ) / rangeZ
-            let x = rect.minX + u * rect.width
-            let y = rect.minY + v * rect.height
-            points.append(CGPoint(x: x, y: y))
+            let viewPoint = worldToView(pt)
+            points.append(CGPoint(x: rect.minX + viewPoint.x, y: rect.minY + viewPoint.y))
         }
         guard points.count >= 3 else { return Path(rect) }
 

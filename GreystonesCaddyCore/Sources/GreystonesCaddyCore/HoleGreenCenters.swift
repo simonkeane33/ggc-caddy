@@ -60,19 +60,30 @@ public extension GCDB {
     backAlt: Double? = nil
   ) throws {
     try dbQueue.write { db in
-      var rec = HoleGreenCenter(
-        holeNumber: holeNumber,
-        updatedAt: Date(),
-        centerLat: centerLat,
-        centerLng: centerLng,
-        centerAlt: centerAlt,
-        frontLat: frontLat,
-        frontLng: frontLng,
-        frontAlt: frontAlt,
-        backLat: backLat,
-        backLng: backLng,
-        backAlt: backAlt
-      )
+      var rec = (try HoleGreenCenter.fetchOne(db, key: holeNumber))
+        ?? HoleGreenCenter(
+          holeNumber: holeNumber,
+          updatedAt: Date(),
+          centerLat: centerLat,
+          centerLng: centerLng,
+          centerAlt: nil,
+          frontLat: nil,
+          frontLng: nil,
+          frontAlt: nil,
+          backLat: nil,
+          backLng: nil,
+          backAlt: nil
+        )
+      rec.centerLat = centerLat
+      rec.centerLng = centerLng
+      if let v = centerAlt { rec.centerAlt = v }
+      if let v = frontLat { rec.frontLat = v }
+      if let v = frontLng { rec.frontLng = v }
+      if let v = frontAlt { rec.frontAlt = v }
+      if let v = backLat { rec.backLat = v }
+      if let v = backLng { rec.backLng = v }
+      if let v = backAlt { rec.backAlt = v }
+      rec.updatedAt = Date()
       try rec.save(db)
     }
   }

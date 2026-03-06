@@ -272,6 +272,9 @@ struct HoleAerialView: View {
         snapToUser()
         recomputeDistances()
       }
+      .onChange(of: state.holeNumber) { _, _ in
+        snapToUser()
+      }
       .onChange(of: loc.lastLocation) { _, _ in
         snapToUser()
         recomputeDistances()
@@ -280,38 +283,26 @@ struct HoleAerialView: View {
   }
 
   private func snapToUser() {
-    if let g = greenCenter, let tee = teeLocation {
-        // Calculate heading from Tee to Green
-        let lat1 = tee.latitude * .pi / 180
-        let lon1 = tee.longitude * .pi / 180
-        let lat2 = g.latitude * .pi / 180
-        let lon2 = g.longitude * .pi / 180
-        
-        let dLon = lon2 - lon1
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        let heading = atan2(y, x) * 180 / .pi
-        
-        // Calculate region
-        let centerLat = (g.latitude + tee.latitude) / 2
-        let centerLng = (g.longitude + tee.longitude) / 2
-        camera = .camera(MapCamera(
-            centerCoordinate: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng),
-            distance: 800, // Adjust for zoom level
-            heading: heading,
-            pitch: 0
-        ))
-        return
-    }
+    let hn = state.holeNumber
+    print("[snapToUser] hole=\(hn) teeRec=\(String(describing: try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .blue)))")
+    guard
+      let teeRec = (try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .blue))
+        ?? (try? GCDB.shared.fetchTeeLocation(holeNumber: hn, tee: .green)),
+      let greenRec = try? GCDB.shared.fetchGreenCenter(holeNumber: hn)
+    else { return }
 
-    // Fallback to user location if no hole data mapped yet
-    guard let l = loc.lastLocation else { return }
-    camera = .region(
-      MKCoordinateRegion(
-        center: l.coordinate,
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-      )
-    )
+    let teeCoord = CLLocationCoordinate2D(latitude: teeRec.lat, longitude: teeRec.lng)
+    let greenCoord = CLLocationCoordinate2D(latitude: greenRec.centerLat, longitude: greenRec.centerLng)
+    let midLat = (teeCoord.latitude + greenCoord.latitude) / 2
+    let midLng = (teeCoord.longitude + greenCoord.longitude) / 2
+    let heading = bearing(from: teeCoord, to: greenCoord)
+
+    camera = .camera(MapCamera(
+      centerCoordinate: CLLocationCoordinate2D(latitude: midLat, longitude: midLng),
+      distance: 800,
+      heading: heading,
+      pitch: 0
+    ))
   }
 
   private func loadGreenCenterIfAny() {
