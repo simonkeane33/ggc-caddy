@@ -7,6 +7,7 @@
 
 import XCTest
 @testable import GreystonesCaddy
+import GreystonesCaddyCore
 
 final class GreystonesCaddyTests: XCTestCase {
 
@@ -31,6 +32,25 @@ final class GreystonesCaddyTests: XCTestCase {
         self.measure {
             // Put the code you want to measure the time of here.
         }
+    }
+
+    /// Completing an 18-hole round should write a round_stats_cache entry that
+    /// fetchAggregatedStats can find on a fresh query.
+    func testFullRoundStatsAreAggregated() throws {
+        let db = GCDB.shared
+        let bundle = try CourseLoader.loadGreystonesCourse()
+
+        let roundId = try db.createRound(tee: .blue, distanceUnit: .yards, course: "Greystones")
+        for hole in bundle.holes {
+            try db.upsertHoleScore(roundId: roundId, holeNumber: hole.number, gross: 4, putts: 2)
+        }
+
+        _ = try db.computeAndStoreRoundStats(roundId: roundId, course: bundle)
+        try db.completeRound(roundId: roundId)
+
+        let stats = try db.fetchAggregatedStats(limit: 20)
+        XCTAssertEqual(stats.roundsAnalyzed, 1, "fetchAggregatedStats should find the completed round")
+        XCTAssertEqual(stats.avgScoreToPar, 3.0, "Score to par should be +3 for 72 strokes on par 69")
     }
 
 }

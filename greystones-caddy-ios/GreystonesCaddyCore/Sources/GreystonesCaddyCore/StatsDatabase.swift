@@ -57,30 +57,48 @@ public extension GCDB {
   
   /// Compute and store stats for a specific hole.
   /// Call this after events are recorded for a hole.
+  /// Falls back to the scorecard entry when no shot events have been tracked.
   func computeAndStoreHoleStats(
     roundId: Int64,
     holeNumber: Int,
     par: Int
   ) throws -> HoleStats {
     let events = try fetchHoleEvents(roundId: roundId, holeNumber: holeNumber)
-    let components = StatsCalculator.calculateHoleStats(events: events, par: par)
-    
+
     // Get or create hole_event_id from hole_scores table
     let holeEventId = try getOrCreateHoleScoreId(roundId: roundId, holeNumber: holeNumber)
-    
-    let stats = HoleStats(
-      holeEventId: holeEventId,
-      roundId: roundId,
-      holeNumber: holeNumber,
-      par: par,
-      strokes: components.strokes,
-      putts: components.putts,
-      penalties: components.penalties,
-      gir: components.gir,
-      fairwayHit: components.fairwayHit,
-      scramble: components.scramble
-    )
-    
+
+    let stats: HoleStats
+    if events.isEmpty, let score = try? fetchHoleScore(roundId: roundId, holeNumber: holeNumber), score.gross > 0 {
+      // No tracked shots, but the user entered a score on the scorecard.
+      stats = HoleStats(
+        holeEventId: holeEventId,
+        roundId: roundId,
+        holeNumber: holeNumber,
+        par: par,
+        strokes: score.gross,
+        putts: score.putts ?? 0,
+        penalties: 0,
+        gir: nil,
+        fairwayHit: nil,
+        scramble: nil
+      )
+    } else {
+      let components = StatsCalculator.calculateHoleStats(events: events, par: par)
+      stats = HoleStats(
+        holeEventId: holeEventId,
+        roundId: roundId,
+        holeNumber: holeNumber,
+        par: par,
+        strokes: components.strokes,
+        putts: components.putts,
+        penalties: components.penalties,
+        gir: components.gir,
+        fairwayHit: components.fairwayHit,
+        scramble: components.scramble
+      )
+    }
+
     try storeHoleStats(stats)
     return stats
   }
@@ -234,18 +252,19 @@ public extension GCDB {
   
   private func getOrCreateHoleScoreId(roundId: Int64, holeNumber: Int) throws -> Int64 {
     try dbQueue.write { db in
-      // Try to get existing
+      // hole_scores uses a composite PK (roundId, holeNumber) with no explicit id,
+      // so use SQLite's implicit rowid as the stable holeEventId.
       if let id = try Int64.fetchOne(
         db,
-        sql: "SELECT id FROM hole_scores WHERE roundId = ? AND holeNumber = ?",
+        sql: "SELECT rowid FROM hole_scores WHERE roundId = ? AND holeNumber = ?",
         arguments: [roundId, holeNumber]
       ) {
         return id
       }
-      
-      // Create new
+
+      // Create a placeholder score row so the hole_stats cache has an id to reference.
       try db.execute(
-        sql: "INSERT INTO hole_scores (roundId, holeNumber, strokes, putts) VALUES (?, ?, 0, 0)",
+        sql: "INSERT INTO hole_scores (roundId, holeNumber, gross, putts) VALUES (?, ?, 0, 0)",
         arguments: [roundId, holeNumber]
       )
       return db.lastInsertedRowID
@@ -257,12 +276,21 @@ public extension GCDB {
       try Int.fetchAll(
         db,
         sql: """
-        SELECT DISTINCT holeNumber FROM shots 
-        WHERE roundId = ? 
+        SELECT DISTINCT holeNumber FROM hole_scores
+        WHERE roundId = ? AND gross > 0
         ORDER BY holeNumber
         """,
         arguments: [roundId]
       )
+    }
+  }
+
+  private func fetchHoleScore(roundId: Int64, holeNumber: Int) throws -> HoleScore? {
+    try dbQueue.read { db in
+      try HoleScore
+        .filter(Column("roundId") == roundId)
+        .filter(Column("holeNumber") == holeNumber)
+        .fetchOne(db)
     }
   }
   

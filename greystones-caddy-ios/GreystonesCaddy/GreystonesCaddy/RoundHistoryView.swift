@@ -48,6 +48,7 @@ struct RoundHistoryView: View {
         .foregroundStyle(stateColor(r.completionState))
         .accessibilityIdentifier("roundState_\(r.id)")
     }
+    .accessibilityIdentifier("roundRow_\(r.id)")
   }
 
   private func stateLabel(_ s: RoundCompletionState) -> String {

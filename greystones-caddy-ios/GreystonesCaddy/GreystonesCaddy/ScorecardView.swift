@@ -182,15 +182,10 @@ struct ScorecardView: View {
       HStack {
         Text("To Par")
         Spacer()
-        if totalStrokes == 0 {
-          Text("—")
-            .font(.headline)
-        } else {
-          let toPar = totalStrokes - parTotal
-          Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
-            .font(.headline)
-            .accessibilityIdentifier("scorecardTotalToPar")
-        }
+        let toPar = totalStrokes == 0 ? nil : totalStrokes - parTotal
+        Text(toPar == nil ? "—" : (toPar == 0 ? "E" : (toPar! > 0 ? "+\(toPar!)" : "\(toPar!)")))
+          .font(.headline)
+          .accessibilityIdentifier("scorecardTotalToPar")
       }
     }
   }

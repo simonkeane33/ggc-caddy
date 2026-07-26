@@ -32,6 +32,7 @@ struct ClubBaselinesView: View {
               }
             }
           }
+          .accessibilityIdentifier("baselineRow_\(c.rawValue)")
         }
       }
     }
@@ -46,6 +47,7 @@ struct ClubBaselinesView: View {
 }
 
 private struct BaselineEditView: View {
+  @Environment(\.dismiss) private var dismiss
   let club: ClubID
 
   @State private var carry: String = ""
@@ -56,8 +58,10 @@ private struct BaselineEditView: View {
       Section(club.rawValue) {
         TextField("Carry (yd)", text: $carry)
           .keyboardType(.numberPad)
+          .accessibilityIdentifier("baselineCarryTextField")
         TextField("Total (yd)", text: $total)
           .keyboardType(.numberPad)
+          .accessibilityIdentifier("baselineTotalTextField")
       }
 
       Section {
@@ -65,7 +69,10 @@ private struct BaselineEditView: View {
           let c = Int(carry.trimmingCharacters(in: .whitespacesAndNewlines))
           let t = Int(total.trimmingCharacters(in: .whitespacesAndNewlines))
           try? GCDB.shared.upsertBaseline(club: club, carryYd: c, totalYd: t)
+          // Dismiss keyboard and pop back to the yardages list.
+          dismiss()
         }
+        .accessibilityIdentifier("baselineSaveButton")
       }
     }
     .navigationTitle(club.rawValue)

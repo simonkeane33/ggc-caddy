@@ -89,9 +89,10 @@ struct StatsDashboardView: View {
           trend: stats.avgScoreToPar,
           target: 0,
           lowerIsBetter: true,
-          color: .blue
+          color: .blue,
+          accessibilityIdentifier: "statsAvgScore"
         )
-        
+
         OverviewCard(
           title: "Best Round",
           value: stats.bestScoreToPar != nil ? "\(stats.bestScoreToPar!)" : "--",
@@ -99,13 +100,15 @@ struct StatsDashboardView: View {
           trend: nil,
           target: nil,
           lowerIsBetter: true,
-          color: .green
+          color: .green,
+          accessibilityIdentifier: "statsBestScore"
         )
       }
       
       Text("Based on \(stats.roundsAnalyzed) rounds")
         .font(.caption)
         .foregroundColor(.secondary)
+        .accessibilityIdentifier("statsRoundsAnalyzed")
     }
   }
   
@@ -234,19 +237,21 @@ struct OverviewCard: View {
   let target: Double?
   let lowerIsBetter: Bool
   let color: Color
-  
+  let accessibilityIdentifier: String
+
   var body: some View {
     VStack(spacing: 8) {
       Text(title)
         .font(.caption)
         .foregroundColor(.secondary)
         .textCase(.uppercase)
-      
+
       HStack(alignment: .firstTextBaseline, spacing: 4) {
         Text(value)
           .font(.system(size: 32, weight: .bold, design: .rounded))
           .foregroundColor(color)
-        
+          .accessibilityIdentifier(accessibilityIdentifier)
+
         Text(subtitle)
           .font(.caption)
           .foregroundColor(.secondary)

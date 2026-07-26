@@ -34,6 +34,7 @@ struct BagSettingsView: View {
             try? GCDB.shared.setBagClubs(order)
             state.reloadBagFromDB()
           }
+          .accessibilityIdentifier("bagSaveButton")
         }
       }
 
@@ -51,6 +52,7 @@ struct BagSettingsView: View {
               }
             }
           ))
+          .accessibilityIdentifier("clubToggle_\(c.rawValue)")
         }
       }
     }
