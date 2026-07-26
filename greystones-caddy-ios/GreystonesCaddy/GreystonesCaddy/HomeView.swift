@@ -123,7 +123,7 @@ struct HomeView: View {
 }
 
 /// Wrapper that sets activeRoundId before showing MainGameView for resuming in-progress rounds.
-private struct ResumeRoundView: View {
+struct ResumeRoundView: View {
   @EnvironmentObject var state: AppState
   let roundId: Int64
 

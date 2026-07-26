@@ -9,15 +9,24 @@ struct RoundStatsView: View {
   @EnvironmentObject var state: AppState
   @Environment(\.dismiss) private var dismiss
 
-  @State private var stats: RoundStatsSummary?
   @State private var isLoading = true
   @State private var errorMessage: String?
   @State private var totalScoreFromHoleScores: Int = 0
   @State private var totalPuttsFromHoleScores: Int = 0
   @State private var holesWithScores: Set<Int> = []
+  @State private var tee: TeeID = .blue
   @State private var showMissingScoresAlert = false
   @State private var showCompleteSuccess = false
   @State private var completedRound: RoundSummary?
+
+  /// Score-to-par computed from canonical hole_scores, for only the holes actually scored.
+  private var scoreToPar: Int? {
+    guard !holesWithScores.isEmpty else { return nil }
+    let parTotal = holesWithScores.reduce(0) { sum, holeNum in
+      sum + (course.holes.first(where: { $0.number == holeNum })?.par[tee] ?? 0)
+    }
+    return totalScoreFromHoleScores - parTotal
+  }
 
   private var isCompletionFlow: Bool {
     state.activeRoundId == roundId
@@ -30,10 +39,6 @@ struct RoundStatsView: View {
           ProgressView("Calculating stats...")
             .padding()
         } else {
-          if isCompletionFlow {
-            completionSummarySection
-          }
-
           if let error = errorMessage {
             Text("Error: \(error)")
               .foregroundColor(.red)
@@ -67,25 +72,6 @@ struct RoundStatsView: View {
     }
   }
 
-  private var completionSummarySection: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 16) {
-        StatCard(
-          title: "Score",
-          value: totalScoreFromHoleScores == 0 ? "—" : "\(totalScoreFromHoleScores)",
-          subtitle: "From scorecard",
-          color: .primary
-        )
-        StatCard(
-          title: "Putts",
-          value: totalPuttsFromHoleScores == 0 ? "—" : "\(totalPuttsFromHoleScores)",
-          subtitle: "From scorecard",
-          color: .blue
-        )
-      }
-    }
-  }
-
   private var completeRoundSection: some View {
     VStack(spacing: 12) {
       Button {
@@ -105,34 +91,20 @@ struct RoundStatsView: View {
   // MARK: - Sections (v1 canonical: total score, total putts only)
 
   private var v1StatsSection: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 16) {
-        StatCard(
-          title: "Score",
-          value: totalScoreFromHoleScores == 0 ? "—" : "\(totalScoreFromHoleScores)",
-          subtitle: stats.map { scoreToParText($0.scoreToPar) } ?? "From scorecard",
-          color: stats.map { scoreColor($0.scoreToPar) } ?? .primary
-        )
+    HStack(spacing: 16) {
+      StatCard(
+        title: "Score",
+        value: totalScoreFromHoleScores == 0 ? "—" : "\(totalScoreFromHoleScores)",
+        subtitle: scoreToPar.map(scoreToParText) ?? "From scorecard",
+        color: scoreToPar.map(scoreColor) ?? .primary
+      )
 
-        StatCard(
-          title: "Putts",
-          value: totalPuttsFromHoleScores == 0 ? "—" : "\(totalPuttsFromHoleScores)",
-          subtitle: "From scorecard",
-          color: .blue
-        )
-      }
-
-      if let stats = stats, stats.totalPenalties > 0 {
-        HStack {
-          Image(systemName: "exclamationmark.triangle.fill")
-            .foregroundColor(.orange)
-          Text("\(stats.totalPenalties) penalty strokes")
-            .font(.subheadline)
-            .foregroundColor(.orange)
-          Spacer()
-        }
-        .padding(.horizontal, 4)
-      }
+      StatCard(
+        title: "Putts",
+        value: totalPuttsFromHoleScores == 0 ? "—" : "\(totalPuttsFromHoleScores)",
+        subtitle: "From scorecard",
+        color: .blue
+      )
     }
   }
   
@@ -158,17 +130,13 @@ struct RoundStatsView: View {
       let totalScore = try GCDB.shared.totalScoreFromHoleScores(roundId: roundId)
       let totalPutts = try GCDB.shared.totalPuttsFromHoleScores(roundId: roundId)
       let scored = try GCDB.shared.holesWithScores(roundId: roundId)
+      let round = try GCDB.shared.fetchRound(roundId: roundId)
 
       await MainActor.run {
         self.totalScoreFromHoleScores = totalScore
         self.totalPuttsFromHoleScores = totalPutts
         self.holesWithScores = scored
-      }
-
-      let summary = try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: course)
-
-      await MainActor.run {
-        self.stats = summary
+        self.tee = round?.tee ?? .blue
         self.isLoading = false
       }
     } catch {

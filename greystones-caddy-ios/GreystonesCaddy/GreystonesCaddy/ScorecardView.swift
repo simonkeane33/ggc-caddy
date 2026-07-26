@@ -92,27 +92,17 @@ struct ScorecardView: View {
 
       Spacer()
 
-      HStack(spacing: 12) {
-        Stepper(value: Binding(
-          get: { gross },
-          set: { v in setScore(hole: h.number, gross: v, putts: putts) }
-        ), in: 0...15) {
-          Text(gross == 0 ? "—" : "\(gross)")
-            .font(.headline)
-            .frame(width: 28, alignment: .trailing)
-        }
-        .labelsHidden()
-
-        Stepper(value: Binding(
-          get: { putts },
-          set: { v in setScore(hole: h.number, gross: gross, putts: v) }
-        ), in: 0...10) {
-          Text(putts == 0 && gross == 0 ? "—" : "\(putts)P")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .frame(width: 28, alignment: .trailing)
-        }
-        .labelsHidden()
+      HStack(spacing: 10) {
+        compactStepper(
+          value: gross == 0 ? "—" : "\(gross)",
+          decrement: { setScore(hole: h.number, gross: max(0, gross - 1), putts: putts) },
+          increment: { setScore(hole: h.number, gross: gross + 1, putts: putts) }
+        )
+        compactStepper(
+          value: putts == 0 && gross == 0 ? "—" : "\(putts)",
+          decrement: { setScore(hole: h.number, gross: gross, putts: max(0, putts - 1)) },
+          increment: { setScore(hole: h.number, gross: gross, putts: putts + 1) }
+        )
       }
 
       if let toPar {
@@ -129,6 +119,27 @@ struct ScorecardView: View {
         Label("Clear", systemImage: "trash")
       }
     }
+  }
+
+  private func compactStepper(value: String, decrement: @escaping () -> Void, increment: @escaping () -> Void) -> some View {
+    HStack(spacing: 4) {
+      Button(action: decrement) {
+        Image(systemName: "minus")
+          .font(.caption)
+          .frame(width: 20, height: 20)
+      }
+      Text(value)
+        .font(.headline)
+        .monospacedDigit()
+        .frame(width: 20, alignment: .center)
+      Button(action: increment) {
+        Image(systemName: "plus")
+          .font(.caption)
+          .frame(width: 20, height: 20)
+      }
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(.secondary)
   }
 
   private var totalsSection: some View {
