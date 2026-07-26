@@ -7,20 +7,27 @@ struct HomeView: View {
   var body: some View {
     NavigationStack {
       ZStack {
-        // Full-screen hero background
-        Image("HomeHero")
-          .resizable()
-          .scaledToFill()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .ignoresSafeArea()
-          .clipped()
+        // Full-screen hero background, isolated in its own ignoring-safe-area subtree.
+        // Mixing ignoresSafeArea() content directly alongside non-ignoring Spacer()-based
+        // siblings (the overlays below) in one ZStack causes SwiftUI/UINavigationController
+        // to render an opaque bar over the safe-area strip regardless of ignoresSafeArea on
+        // the individual children. Isolating the full-bleed content in its own subtree here
+        // avoids that; the overlays below keep their original, unmodified layout.
+        GeometryReader { geo in
+          ZStack {
+            Image("HomeHero")
+              .resizable()
+              .scaledToFill()
+              .frame(width: geo.size.width, height: geo.size.height)
+              .clipped()
 
-        // Gradient overlay for legibility
-        LinearGradient(
-          colors: [.clear, .black.opacity(0.5), .black.opacity(0.85)],
-          startPoint: .top,
-          endPoint: .bottom
-        )
+            LinearGradient(
+              colors: [.clear, .black.opacity(0.5), .black.opacity(0.85)],
+              startPoint: .top,
+              endPoint: .bottom
+            )
+          }
+        }
         .ignoresSafeArea()
 
         // Logo in top third
