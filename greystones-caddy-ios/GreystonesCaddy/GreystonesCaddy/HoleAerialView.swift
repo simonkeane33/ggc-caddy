@@ -22,9 +22,11 @@ struct HoleAerialView: View {
   @State private var targetDistanceYd: Int? = nil
 
   @State private var setGreenMode: Bool = false
-  @State private var dragTarget: CLLocationCoordinate2D? = nil
   @State private var selectedDistance: (meters: Double, label: String)? = nil
   @State private var isZoomedOnTarget: Bool = false
+  @State private var renderToken = UUID()
+
+  @State private var showDragDebug = true
 
   var body: some View {
     MapReader { proxy in
@@ -49,56 +51,11 @@ struct HoleAerialView: View {
           }
         }
 
-        // Draw line from Tee -> Target -> Green
-        if let tee = teeLocation, let g = greenCenter {
-            let activeTarget = dragTarget ?? target ?? midPoint(tee, g)
-            
-            MapPolyline(coordinates: [tee, activeTarget, g])
-                .stroke(.white.opacity(0.8), lineWidth: 2)
-            
-            // Distance Arc Rings around Target (18Birdies Style)
-            if isZoomedOnTarget {
-                ForEach([20.0, 40.0, 60.0], id: \.self) { radiusMeters in
-                    MapCircle(center: activeTarget, radius: radiusMeters)
-                        .foregroundStyle(.clear)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                }
-            }
-            
-            // Current User/Tee Marker
-            Annotation("Start", coordinate: tee) {
+        if let tee = teeLocation {
+            Annotation("Tee", coordinate: tee) {
                 Image(systemName: "circle.fill")
                     .foregroundStyle(.white)
                     .overlay(Circle().stroke(.black, lineWidth: 1))
-            }
-            
-            // Movable Target (Crosshair)
-            Annotation("Target", coordinate: activeTarget) {
-                TargetCrosshair(isZoomed: isZoomedOnTarget)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if let coord = proxy.convert(value.location, from: .local) {
-                                dragTarget = coord
-                                recomputeDistances()
-                                if !isZoomedOnTarget {
-                                    withAnimation { isZoomedOnTarget = true }
-                                }
-                                updateCameraForTarget(coord)
-                            }
-                        }
-                        .onEnded { value in
-                            if let coord = proxy.convert(value.location, from: .local) {
-                                target = coord
-                                dragTarget = nil
-                                recomputeDistances()
-                                withAnimation { isZoomedOnTarget = false }
-                                // Return to overview after a delay or keep focus?
-                                // Let's snap back to overview.
-                                snapToUser()
-                            }
-                        }
-                )
             }
         }
         
@@ -154,12 +111,33 @@ struct HoleAerialView: View {
       .ignoresSafeArea(edges: .bottom)
       .navigationTitle("Hole view")
       .navigationBarTitleDisplayMode(.inline)
+      .onMapCameraChange(frequency: .continuous) { _ in
+        renderToken = UUID()
+      }
+      .overlay(alignment: .topLeading) {
+        if let tee = teeLocation, let g = greenCenter {
+          LineGuideOverlay(
+            proxy: proxy,
+            tee: tee,
+            target: target ?? midPoint(tee, g),
+            green: g,
+            isZoomed: isZoomedOnTarget,
+            showDebug: showDragDebug,
+            onCommit: { coord in
+              target = coord
+              recomputeDistances()
+              withAnimation { isZoomedOnTarget = false }
+              snapToUser()
+            }
+          )
+        }
+      }
       .overlay(alignment: .top) {
           if let tee = teeLocation, let g = greenCenter {
-              let t = dragTarget ?? target ?? midPoint(tee, g)
+              let t = target ?? midPoint(tee, g)
               let distToTarget = distanceYards(from: tee, to: t)
               let distTargetToGreen = distanceYards(from: t, to: g)
-              
+
               HStack(spacing: 20) {
                   Button {
                       selectedDistance = (meters: Double(distToTarget) / 1.09361, label: "TO TARGET")
@@ -167,7 +145,7 @@ struct HoleAerialView: View {
                       distancePill(label: "TO TARGET", value: "\(distToTarget)", color: .white)
                   }
                   .buttonStyle(.plain)
-                  
+
                   Button {
                       selectedDistance = (meters: Double(distTargetToGreen) / 1.09361, label: "TO GREEN")
                   } label: {
@@ -190,7 +168,7 @@ struct HoleAerialView: View {
       }
       .safeAreaInset(edge: .bottom) {
         if let g = greenCenter, let tee = teeLocation {
-            let activeTarget = dragTarget ?? target ?? midPoint(tee, g)
+            let activeTarget = target ?? midPoint(tee, g)
             let distToTarget = distanceYards(from: tee, to: activeTarget)
             let distTargetToGreen = distanceYards(from: activeTarget, to: g)
             
@@ -244,6 +222,18 @@ struct HoleAerialView: View {
           }
         }
       }
+      #if DEBUG
+      .overlay(alignment: .bottomTrailing) {
+        if !setGreenMode {
+          Button("Debug") {
+            showDragDebug.toggle()
+          }
+          .padding()
+          .buttonStyle(.borderedProminent)
+          .tint(.orange)
+        }
+      }
+      #endif
       .onTapGesture { point in
         guard let coord = proxy.convert(point, from: .local) else { return }
 
@@ -363,15 +353,6 @@ struct HoleAerialView: View {
     }
   }
 
-  private func updateCameraForTarget(_ coord: CLLocationCoordinate2D) {
-      if isZoomedOnTarget {
-          camera = .region(MKCoordinateRegion(
-              center: coord,
-              span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)
-          ))
-      }
-  }
-
   private func midPoint(_ c1: CLLocationCoordinate2D, _ c2: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
       CLLocationCoordinate2D(
           latitude: (c1.latitude + c2.latitude) / 2,
@@ -404,11 +385,186 @@ private struct TargetCrosshair: View {
                 .strokeBorder(.white, lineWidth: isZoomed ? 3 : 2)
                 .background(Circle().fill(.black.opacity(0.3)))
                 .frame(width: isZoomed ? 60 : 44, height: isZoomed ? 60 : 44)
-            
+
             Rectangle().fill(.white).frame(width: isZoomed ? 30 : 20, height: 1)
             Rectangle().fill(.white).frame(width: 1, height: isZoomed ? 30 : 20)
             Circle().fill(.white).frame(width: 4, height: 4)
         }
+    }
+}
+
+/// Synchronous "as the crow flies" guide lines, distance rings, and draggable target
+/// crosshair drawn as a SwiftUI overlay directly on the map. MapKit's MapPolyline/
+/// MapCircle overlays redraw on a separate thread and lag behind the draggable
+/// crosshair. More importantly, moving a MapKit Annotation coordinate during a drag
+/// causes its own internal animation, which also looks like lag. This overlay keeps
+/// the moving target entirely in SwiftUI screen space and only reports the final
+/// coordinate back to the parent on drag release.
+private struct LineGuideOverlay: View {
+    let proxy: MapProxy
+    let tee: CLLocationCoordinate2D
+    let target: CLLocationCoordinate2D
+    let green: CLLocationCoordinate2D
+    let isZoomed: Bool
+    let showDebug: Bool
+    let onCommit: (CLLocationCoordinate2D) -> Void
+
+    /// Touch point in the overlay's local coordinate space; only this property mutates
+    /// during a drag so the rest of the map body does not recompute.
+    @State private var dragPoint: CGPoint? = nil
+    /// Offset between the initial touch and the crosshair center, preserved throughout the drag.
+    @State private var dragOffset: CGSize? = nil
+
+    var body: some View {
+        GeometryReader { geo in
+            let teePoint = proxy.convert(tee, to: .local) ?? .zero
+            let targetPoint = proxy.convert(target, to: .local) ?? .zero
+            let greenPoint = proxy.convert(green, to: .local) ?? .zero
+            let crosshairPoint = dragPoint ?? targetPoint
+            let activeTargetCoord = dragPoint.flatMap { proxy.convert($0, from: .local) } ?? target
+            let overlayOrigin = geo.frame(in: .global).origin
+
+            ZStack {
+                // Lines follow either the committed target or the live drag point.
+                LineShape(from: teePoint, to: crosshairPoint)
+                    .stroke(.white.opacity(0.8), lineWidth: 2)
+
+                LineShape(from: crosshairPoint, to: greenPoint)
+                    .stroke(.white.opacity(0.8), lineWidth: 2)
+
+                if isZoomed {
+                    ForEach([20.0, 40.0, 60.0], id: \.self) { yards in
+                        Circle()
+                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                            .frame(
+                                width: ringDiameter(yards: yards, center: activeTargetCoord),
+                                height: ringDiameter(yards: yards, center: activeTargetCoord)
+                            )
+                            .position(crosshairPoint)
+                    }
+                }
+
+                #if DEBUG
+                if showDebug {
+                    DebugMarkers(
+                        teePoint: teePoint,
+                        targetPoint: targetPoint,
+                        greenPoint: greenPoint,
+                        crosshairPoint: crosshairPoint,
+                        dragPoint: dragPoint
+                    )
+                }
+                #endif
+
+                // Draggable target crosshair rendered in screen space.
+                TargetCrosshair(isZoomed: isZoomed)
+                    .position(crosshairPoint)
+                    .gesture(
+                        DragGesture(coordinateSpace: .global)
+                            .onChanged { value in
+                                let touchInOverlay = CGPoint(
+                                    x: value.location.x - overlayOrigin.x,
+                                    y: value.location.y - overlayOrigin.y
+                                )
+                                if dragOffset == nil {
+                                    dragOffset = CGSize(
+                                        width: touchInOverlay.x - crosshairPoint.x,
+                                        height: touchInOverlay.y - crosshairPoint.y
+                                    )
+                                }
+                                guard let offset = dragOffset else { return }
+                                dragPoint = CGPoint(
+                                    x: touchInOverlay.x - offset.width,
+                                    y: touchInOverlay.y - offset.height
+                                )
+                            }
+                            .onEnded { value in
+                                dragOffset = nil
+                                let touchInOverlay = CGPoint(
+                                    x: value.location.x - overlayOrigin.x,
+                                    y: value.location.y - overlayOrigin.y
+                                )
+                                dragPoint = nil
+                                if let coord = proxy.convert(touchInOverlay, from: .local) {
+                                    onCommit(coord)
+                                }
+                            }
+                    )
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    private func ringDiameter(yards: Double, center: CLLocationCoordinate2D) -> CGFloat {
+        guard let edgeCoord = coordinate(at: yards, center: center, heading: 90) else { return 0 }
+        guard let edgePoint = proxy.convert(edgeCoord, to: .local) else { return 0 }
+        guard let centerPoint = proxy.convert(center, to: .local) else { return 0 }
+        return abs(edgePoint.x - centerPoint.x) * 2
+    }
+
+    private func coordinate(at distanceYards: Double, center: CLLocationCoordinate2D, heading: Double) -> CLLocationCoordinate2D? {
+        let distanceMeters = distanceYards * 0.9144
+        let deltaLat = distanceMeters / 111320.0
+        let deltaLon = distanceMeters / (111320.0 * cos(center.latitude * .pi / 180))
+        return CLLocationCoordinate2D(
+            latitude: center.latitude + deltaLat,
+            longitude: center.longitude + deltaLon
+        )
+    }
+}
+
+#if DEBUG
+private struct DebugMarkers: View {
+    let teePoint: CGPoint
+    let targetPoint: CGPoint
+    let greenPoint: CGPoint
+    let crosshairPoint: CGPoint
+    let dragPoint: CGPoint?
+
+    var body: some View {
+        ZStack {
+            // Reference points projected from the committed coordinates.
+            marker(at: teePoint, color: .blue, label: "T")
+            marker(at: greenPoint, color: .yellow, label: "G")
+            marker(at: targetPoint, color: .purple, label: "tgt")
+
+            // Live drag touch point vs. the crosshair the lines currently use.
+            if let dp = dragPoint {
+                // Connector between raw touch and crosshair so any gap is visible.
+                LineShape(from: dp, to: crosshairPoint)
+                    .stroke(.red.opacity(0.8), lineWidth: 2)
+                marker(at: dp, color: .red, label: "drag")
+            }
+            marker(at: crosshairPoint, color: .green, label: "cross")
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func marker(at point: CGPoint, color: Color, label: String) -> some View {
+        ZStack {
+            Circle()
+                .fill(color)
+                .frame(width: 12, height: 12)
+                .overlay(Circle().stroke(.white, lineWidth: 1))
+            Text(label)
+                .font(.caption2.bold())
+                .foregroundStyle(.white)
+                .offset(y: -18)
+        }
+        .position(point)
+    }
+}
+#endif
+
+private struct LineShape: Shape {
+    let from: CGPoint
+    let to: CGPoint
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: from)
+        path.addLine(to: to)
+        return path
     }
 }
 
