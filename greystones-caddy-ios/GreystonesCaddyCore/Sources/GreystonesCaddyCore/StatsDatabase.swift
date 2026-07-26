@@ -186,27 +186,35 @@ public extension GCDB {
     }
   }
   
-  /// Fetch aggregated stats across all rounds (for trends).
+  /// Fetch aggregated stats across completed rounds only (v1 stats eligibility).
   func fetchAggregatedStats(limit: Int = 20) throws -> AggregatedStats {
     try dbQueue.read { db in
+      let cols = try db.columns(in: "rounds").map(\.name)
+      let hasState = cols.contains("completionState")
+      let joinClause = hasState
+        ? "INNER JOIN rounds ON round_stats_cache.roundId = rounds.id AND rounds.completionState = 'completed'"
+        : "INNER JOIN rounds ON round_stats_cache.roundId = rounds.id AND rounds.endedAt IS NOT NULL"
+
       let rows = try Row.fetchAll(
         db,
         sql: """
-        SELECT girPercentage, fairwayPercentage, scramblePercentage, puttsPerRound,
-               scoreToPar, totalStrokes
+        SELECT round_stats_cache.girPercentage, round_stats_cache.fairwayPercentage,
+               round_stats_cache.scramblePercentage, round_stats_cache.puttsPerRound,
+               round_stats_cache.scoreToPar, round_stats_cache.totalStrokes
         FROM round_stats_cache
-        ORDER BY computedAt DESC
+        \(joinClause)
+        ORDER BY round_stats_cache.computedAt DESC
         LIMIT ?
         """,
         arguments: [limit]
       )
-      
+
       let girs = rows.compactMap { $0["girPercentage"] as Double? }
       let fairways = rows.compactMap { $0["fairwayPercentage"] as Double? }
       let scrambles = rows.compactMap { $0["scramblePercentage"] as Double? }
       let putts = rows.map { $0["puttsPerRound"] as Double }
       let scores = rows.map { $0["scoreToPar"] as Int }
-      
+
       return AggregatedStats(
         roundsAnalyzed: rows.count,
         avgGIRPercentage: girs.isEmpty ? nil : girs.reduce(0, +) / Double(girs.count),

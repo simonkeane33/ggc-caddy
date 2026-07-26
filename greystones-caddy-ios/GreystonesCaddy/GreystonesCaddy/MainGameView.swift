@@ -11,8 +11,11 @@ struct MainGameView: View {
   // Map state
   @State private var camera: MapCameraPosition = .automatic
   @State private var dragTarget: CLLocationCoordinate2D? = nil
-  @State private var target: CLLocationCoordinate2D? = nil
+  /// Per-hole target; nil = use default (midpoint tee↔green). Never persists across holes.
+  @State private var targetByHole: [Int: CLLocationCoordinate2D] = [:]
   @State private var isZoomedOnTarget: Bool = false
+  /// Last hole we applied framing for; avoids re-framing when returning from Scorecard etc.
+  @State private var lastFramedHole: Int? = nil
   
   // Scoring state
   @State private var strokes: Int = 0
@@ -22,11 +25,11 @@ struct MainGameView: View {
   
   // UI state
   @State private var showShotConfirm: Bool = false
-  @State private var pendingFix: (lat: Double, lng: Double, hAcc: Double?)? = nil
+  @State private var pendingFix: (lat: Double, lng: Double, alt: Double?, hAcc: Double?)? = nil
+  @State private var editEvent: HoleEvent? = nil
   @State private var showHolePicker = false
   @State private var selectedDistance: (meters: Double, label: String)? = nil
-  @State private var showEndRoundConfirm = false
-  @State private var summaryRound: RoundSummary? = nil
+  @State private var showAbandonConfirm = false
   @State private var greenCenter: CLLocationCoordinate2D? = nil
 
   var body: some View {
@@ -39,7 +42,7 @@ struct MainGameView: View {
           UserAnnotation()
           
           if let tee = teeLocation, let g = greenCenter {
-            let activeTarget = dragTarget ?? target ?? midPoint(tee, g)
+            let activeTarget = dragTarget ?? targetByHole[state.holeNumber] ?? midPoint(tee, g)
             
             // Smoother Line Logic
             MapPolyline(coordinates: [tee, activeTarget, g])
@@ -75,7 +78,9 @@ struct MainGameView: View {
                   }
                   .onEnded { value in
                       if let coord = proxy.convert(value.location, from: .global) {
-                          target = coord
+                          var updated = targetByHole
+                          updated[state.holeNumber] = coord
+                          targetByHole = updated
                           dragTarget = nil
                           withAnimation(.easeIn(duration: 0.2)) {
                               isZoomedOnTarget = false
@@ -135,6 +140,11 @@ struct MainGameView: View {
           
           Menu {
               NavigationLink("Scorecard") { ScorecardView() }
+              if state.activeRoundId != nil {
+                NavigationLink("Complete round") {
+                  RoundStatsView(roundId: state.activeRoundId!, course: state.course)
+                }
+              }
               NavigationLink("Hole Insights") { HoleInsightsView(holeNumber: state.holeNumber, course: state.course) }
               NavigationLink("Settings") { SettingsView() }
           } label: {
@@ -153,26 +163,36 @@ struct MainGameView: View {
     .navigationBarHidden(true)
     .onAppear {
       refreshStats()
-      snapToUser()
       loadGreenCenter()
+      applyHoleFramingIfNeeded()
     }
     .onReceive(NotificationCenter.default.publisher(for: .greenCenterDidUpdate)) { _ in
       loadGreenCenter()
     }
     .onChange(of: state.holeNumber) { _, _ in
       loadGreenCenter()
-      snapToUser()
+      applyHoleFramingIfNeeded()
     }
     .sheet(isPresented: $showHolePicker) {
       HolePickerSheet(currentHole: state.holeNumber, course: state.course) { hn in
         state.holeNumber = hn
         refreshStats()
-        snapToUser()
         showHolePicker = false
       }
     }
     .sheet(isPresented: $showShotConfirm) {
         ShotConfirmSheet(club: $state.selectedClub, shotType: $state.shotType, holeNumber: state.holeNumber, accuracy: pendingFix?.hAcc, onCancel: { showShotConfirm = false }, onConfirm: { confirmLogShot() })
+    }
+    .sheet(item: $editEvent) { event in
+      NavigationStack {
+        EventEditView(event: event)
+          .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+              Button("Done") { editEvent = nil }
+            }
+          }
+          .onDisappear { refreshStats() }
+      }
     }
     .sheet(item: Binding(
         get: { selectedDistance != nil ? DistanceSelection(val: selectedDistance!) : nil },
@@ -185,6 +205,25 @@ struct MainGameView: View {
         )
         .presentationDetents([.large])
     }
+    .alert("Abandon round?", isPresented: $showAbandonConfirm) {
+      Button("Abandon round", role: .destructive) { performAbandon() }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text("This round will be marked abandoned and kept in history. You can view it later in round history.")
+    }
+  }
+
+  private func performAbandon() {
+    guard let rid = state.activeRoundId else { return }
+    do {
+      try GCDB.shared.abandonRound(roundId: rid)
+    } catch {
+      return
+    }
+    state.activeRoundId = nil
+    state.holeNumber = 1
+    state.abandonTriggered = true
+    dismiss()
   }
   
   // MARK: - Components
@@ -296,6 +335,10 @@ struct MainGameView: View {
 
   private var bottomControlsSection: some View {
     VStack(spacing: 16) {
+      if !events.isEmpty {
+        holeShotsList
+      }
+
       Button(action: { beginLogShot() }) {
         Label("Track Shot", systemImage: "mappin.and.ellipse")
           .font(.headline)
@@ -362,7 +405,12 @@ struct MainGameView: View {
             Menu {
                 NavigationLink("Settings") { SettingsView() }
                 NavigationLink("Course Intelligence") { CourseIntelligenceView(course: state.course) }
-                Button("End Round", role: .destructive) { showEndRoundConfirm = true }
+                if let rid = state.activeRoundId {
+                  NavigationLink("Complete round") {
+                    RoundStatsView(roundId: rid, course: state.course)
+                  }
+                  Button("Abandon round", role: .destructive) { showAbandonConfirm = true }
+                }
             } label: {
                 Image(systemName: "wrench.and.screwdriver.fill").font(.title3)
                     .frame(width: 48, height: 48)
@@ -426,20 +474,52 @@ struct MainGameView: View {
   private func midPoint(_ c1: CLLocationCoordinate2D, _ c2: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
       CLLocationCoordinate2D(latitude: (c1.latitude + c2.latitude) / 2, longitude: (c1.longitude + c2.longitude) / 2)
   }
-  
+
   private func updateCameraForTarget(_ coord: CLLocationCoordinate2D) {
       if isZoomedOnTarget {
           camera = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)))
       }
   }
-  
-  private func snapToUser() {
-      if let g = greenCenter, let tee = teeLocation {
-          let centerLat = (g.latitude + tee.latitude) / 2
-          let centerLng = (g.longitude + tee.longitude) / 2
-          let spanLat = abs(g.latitude - tee.latitude) * 1.5
-          let spanLng = abs(g.longitude - tee.longitude) * 1.5
-          camera = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng), span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.005), longitudeDelta: max(spanLng, 0.005))))
+
+  // MARK: - Hole framing (hole-map-framing-and-target-behaviour)
+  // v1: Tee + green center anchors; MapCamera with heading; overlay-safe padding; animated.
+  // Apply only on round start and hole change — not when returning to same hole.
+  private static let framingAnimationDuration: Double = 0.4
+  /// Overlay-safe: tee and green must stay clear of top/bottom overlays. Refined after live testing.
+  private static let overlaySafeSpanMultiplier: Double = 2.0
+  private static let cameraDistanceMultiplier: Double = 3.0
+
+  private func applyHoleFramingIfNeeded() {
+      guard lastFramedHole != state.holeNumber else { return }
+      guard let g = greenCenter, let tee = teeLocation else { return }
+
+      lastFramedHole = state.holeNumber
+
+      let lat1 = tee.latitude * .pi / 180
+      let lon1 = tee.longitude * .pi / 180
+      let lat2 = g.latitude * .pi / 180
+      let lon2 = g.longitude * .pi / 180
+      let dLon = lon2 - lon1
+      let y = sin(dLon) * cos(lat2)
+      let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+      let heading = atan2(y, x) * 180 / .pi
+
+      let centerLat = (g.latitude + tee.latitude) / 2
+      let centerLng = (g.longitude + tee.longitude) / 2
+      let spanLat = abs(g.latitude - tee.latitude) * Self.overlaySafeSpanMultiplier
+      let spanLng = abs(g.longitude - tee.longitude) * Self.overlaySafeSpanMultiplier
+      let spanMeters = max(Geo.distanceMetres(lat1: tee.latitude, lng1: tee.longitude, lat2: g.latitude, lng2: g.longitude), 100)
+      let distance = spanMeters * Self.cameraDistanceMultiplier
+
+      let newCamera = MapCameraPosition.camera(MapCamera(
+          centerCoordinate: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng),
+          distance: distance,
+          heading: heading,
+          pitch: 0
+      ))
+
+      withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
+          camera = newCamera
       }
   }
   
@@ -449,16 +529,60 @@ struct MainGameView: View {
       events = (try? GCDB.shared.fetchHoleEvents(roundId: rid, holeNumber: state.holeNumber)) ?? []
   }
   
+  private var holeShotsList: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("Hole \(state.holeNumber) shots")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 8) {
+          ForEach(Array(events.enumerated()), id: \.element.id) { idx, e in
+            HStack(spacing: 6) {
+              Text(e.kind == .shot ? "#\(idx + 1)" : "P")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+              Text(e.kind == .shot ? e.club.rawValue : "+\(e.penaltyStrokes ?? 1)")
+                .font(.subheadline.bold())
+              Button {
+                editEvent = e
+              } label: {
+                Image(systemName: "pencil")
+                  .font(.caption)
+              }
+              .buttonStyle(.plain)
+              Button {
+                try? GCDB.shared.deleteEvent(id: e.id)
+                refreshStats()
+              } label: {
+                Image(systemName: "trash")
+                  .font(.caption)
+                  .foregroundStyle(.red)
+              }
+              .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+          }
+        }
+        .padding(.horizontal, 4)
+      }
+    }
+    .padding(.horizontal)
+  }
+
   private func beginLogShot() {
       if let l = loc.lastLocation {
-          pendingFix = (l.coordinate.latitude, l.coordinate.longitude, l.horizontalAccuracy)
+          let alt: Double? = (l.altitude >= 0) ? l.altitude : nil
+          pendingFix = (l.coordinate.latitude, l.coordinate.longitude, alt, l.horizontalAccuracy)
           showShotConfirm = true
       }
   }
   
   private func confirmLogShot() {
       guard let rid = state.activeRoundId, let fix = pendingFix else { return }
-      try? GCDB.shared.addShot(roundId: rid, holeNumber: state.holeNumber, location: fix, club: state.selectedClub, shotType: state.shotType)
+      try? GCDB.shared.addShot(roundId: rid, holeNumber: state.holeNumber, location: (fix.lat, fix.lng, fix.alt, fix.hAcc), club: state.selectedClub, shotType: state.shotType)
       refreshStats()
       showShotConfirm = false
   }

@@ -22,12 +22,10 @@ struct LiveHoleView: View {
   @State private var scoreNetToPar: Int = 0
   @State private var scorePts: Int? = nil
 
-  // Club picker sheet removed; show full bag as a grid for quick selection.
-  @State private var showEndRoundConfirm: Bool = false
-  @State private var summaryRound: RoundSummary? = nil
+  @State private var showAbandonConfirm: Bool = false
 
   @State private var showShotConfirm: Bool = false
-  @State private var pendingFix: (lat: Double, lng: Double, hAcc: Double?)? = nil
+  @State private var pendingFix: (lat: Double, lng: Double, alt: Double?, hAcc: Double?)? = nil
   @State private var pendingClub: ClubID = .driver
   @State private var pendingShotType: ShotType = .full
 
@@ -104,7 +102,12 @@ struct LiveHoleView: View {
             Divider()
             NavigationLink("Settings") { SettingsView() }
             Divider()
-            Button("End Round", role: .destructive) { showEndRoundConfirm = true }
+            if let rid = state.activeRoundId {
+              NavigationLink("Complete round") {
+                RoundStatsView(roundId: rid, course: state.course)
+              }
+              Button("Abandon round", role: .destructive) { showAbandonConfirm = true }
+            }
           } label: {
             Image(systemName: "ellipsis.circle")
           }
@@ -123,15 +126,11 @@ struct LiveHoleView: View {
         loc.refreshOnce()
       }
     }
-    // Strategy mode removed.
-    .alert("End round?", isPresented: $showEndRoundConfirm) {
-      Button("End round", role: .destructive) { endRound() }
+    .alert("Abandon round?", isPresented: $showAbandonConfirm) {
+      Button("Abandon round", role: .destructive) { performAbandon() }
       Button("Cancel", role: .cancel) {}
     } message: {
-      Text("This will mark the round as ended. You can still view it in Recent rounds.")
-    }
-    .navigationDestination(item: $summaryRound) { r in
-      RoundDetailView(round: r)
+      Text("This round will be marked abandoned and kept in history. You can view it later in round history.")
     }
     .sheet(isPresented: $showShotConfirm) {
       ShotConfirmSheet(
@@ -527,9 +526,10 @@ struct LiveHoleView: View {
     }
   }
 
-  private func currentFix() -> (lat: Double, lng: Double, hAcc: Double?)? {
+  private func currentFix() -> (lat: Double, lng: Double, alt: Double?, hAcc: Double?)? {
     guard let l = loc.lastLocation else { return nil }
-    return (l.coordinate.latitude, l.coordinate.longitude, l.horizontalAccuracy)
+    let alt: Double? = (l.altitude >= 0) ? l.altitude : nil
+    return (l.coordinate.latitude, l.coordinate.longitude, alt, l.horizontalAccuracy)
   }
 
   private func beginLogShot() {
@@ -566,7 +566,7 @@ struct LiveHoleView: View {
       try GCDB.shared.addShot(
         roundId: roundId,
         holeNumber: state.holeNumber,
-        location: fix,
+        location: (fix.lat, fix.lng, fix.alt, fix.hAcc),
         club: pendingClub,
         shotType: pendingShotType
       )
@@ -596,7 +596,7 @@ struct LiveHoleView: View {
     }
 
     do {
-      try GCDB.shared.addPenalty(roundId: roundId, holeNumber: state.holeNumber, location: fix, strokes: 1)
+      try GCDB.shared.addPenalty(roundId: roundId, holeNumber: state.holeNumber, location: (fix.lat, fix.lng, fix.alt, fix.hAcc), strokes: 1)
       refreshStats()
       info = "Logged penalty (+1)"
     } catch {
@@ -766,35 +766,17 @@ struct LiveHoleView: View {
     scorePts = (round.gameType == .stableford && holesCounted > 0) ? ptsTotal : (round.gameType == .stableford ? 0 : nil)
   }
 
-  private func endRound() {
-    guard let roundId = state.activeRoundId else { return }
+  private func performAbandon() {
+    guard let rid = state.activeRoundId else { return }
     do {
-      // Compute stats for final hole
-      if let hole = state.currentHole {
-        try? GCDB.shared.computeAndStoreHoleStats(
-          roundId: roundId,
-          holeNumber: state.holeNumber,
-          par: hole.par[state.tee]
-        )
-      }
-      
-      // Compute round summary stats
-      try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: state.course)
-      
-      try GCDB.shared.endRound(roundId: roundId)
-
-      // Clear active state so Home shows it under recent rounds.
-      state.activeRoundId = nil
-      state.holeNumber = 1
-
-      if let r = try? GCDB.shared.fetchRound(roundId: roundId) {
-        summaryRound = r
-      } else {
-        dismiss()
-      }
+      try GCDB.shared.abandonRound(roundId: rid)
     } catch {
-      info = "Failed to end round: \(error.localizedDescription)"
+      return
     }
+    state.activeRoundId = nil
+    state.holeNumber = 1
+    state.abandonTriggered = true
+    dismiss()
   }
 
   private func toastView(text: String) -> some View {

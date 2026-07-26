@@ -338,7 +338,7 @@ struct CourseIntelligenceView: View {
   }
   
   private func fetchAllHoleStats() throws -> [HoleStats] {
-    let rounds = try GCDB.shared.listRounds(limit: 100)
+    let rounds = try GCDB.shared.listCompletedRounds(limit: 100)
     
     var allStats: [HoleStats] = []
     for round in rounds {

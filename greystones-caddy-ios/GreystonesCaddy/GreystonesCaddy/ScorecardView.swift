@@ -14,99 +14,54 @@ struct ScorecardView: View {
     self.unitOverride = unit
   }
 
-  @State private var holeStrokes: [Int: Int] = [:]
-  @State private var holePutts: [Int: Int] = [:]
+  @State private var scores: [Int: HoleScore] = [:]
+  @State private var validationMessage: String? = nil
+
+  private var effectiveRoundId: Int64? {
+    roundId ?? state.activeRoundId
+  }
 
   var body: some View {
     List {
-      Section {
-        let tee = teeOverride ?? state.tee
-        let unit = unitOverride ?? state.unit
-
-        HStack {
-          Text("Tee")
-          Spacer()
-          Text(tee.rawValue.capitalized)
+      if effectiveRoundId == nil {
+        Section {
+          Text("Start a round to enter scores.")
             .foregroundStyle(.secondary)
         }
-        HStack {
-          Text("Units")
-          Spacer()
-          Text(unit == .yards ? "Yards" : "Metres")
-            .foregroundStyle(.secondary)
-        }
-      }
-
-      Section("Holes") {
-        ForEach(state.course.holes) { h in
-          let strokes = holeStrokes[h.number] ?? 0
-          let putts = holePutts[h.number] ?? 0
+      } else {
+        Section {
           let tee = teeOverride ?? state.tee
-          let par = h.par[tee]
-          let toPar = strokes == 0 ? nil : (strokes - par)
+          let unit = unitOverride ?? state.unit
 
           HStack {
-            Text("\(h.number)")
-              .frame(width: 24, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 2) {
-              Text(h.name)
-                .lineLimit(1)
-              Text("Par \(par) • SI \(h.si[state.tee])")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
+            Text("Tee")
             Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-              Text(strokes == 0 ? "—" : "\(strokes)")
-                .font(.headline)
-              Text(putts == 0 ? "" : "\(putts) putts")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            if let toPar {
-              Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(width: 40, alignment: .trailing)
-            }
+            Text(tee.rawValue.capitalized)
+              .foregroundStyle(.secondary)
+          }
+          HStack {
+            Text("Units")
+            Spacer()
+            Text(unit == .yards ? "Yards" : "Metres")
+              .foregroundStyle(.secondary)
           }
         }
-      }
 
-      Section("Totals") {
-        let tee = teeOverride ?? state.tee
-        let totalStrokes = holeStrokes.values.reduce(0, +)
-        let totalPutts = holePutts.values.reduce(0, +)
-        let parTotal = state.course.holes.map { $0.par[tee] }.reduce(0, +)
-
-        HStack {
-          Text("Strokes")
-          Spacer()
-          Text(totalStrokes == 0 ? "—" : "\(totalStrokes)")
-            .font(.headline)
+        Section("Holes") {
+          ForEach(state.course.holes) { h in
+            holeRow(h)
+          }
         }
 
-        HStack {
-          Text("Putts")
-          Spacer()
-          Text(totalPutts == 0 ? "—" : "\(totalPutts)")
-            .font(.headline)
+        Section("Totals") {
+          totalsSection
         }
 
-        HStack {
-          Text("To Par")
-          Spacer()
-          if totalStrokes == 0 {
-            Text("—")
-              .font(.headline)
-          } else {
-            let toPar = totalStrokes - parTotal
-            Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
-              .font(.headline)
+        if let msg = validationMessage {
+          Section {
+            Text(msg)
+              .font(.footnote)
+              .foregroundStyle(.orange)
           }
         }
       }
@@ -115,18 +70,147 @@ struct ScorecardView: View {
     .onAppear { refresh() }
   }
 
+  @ViewBuilder
+  private func holeRow(_ h: CourseBundle.Hole) -> some View {
+    let tee = teeOverride ?? state.tee
+    let par = h.par[tee]
+    let gross = scores[h.number]?.gross ?? 0
+    let putts = scores[h.number]?.putts ?? 0
+    let toPar = gross == 0 ? nil : (gross - par)
+
+    HStack {
+      Text("\(h.number)")
+        .frame(width: 24, alignment: .leading)
+
+      VStack(alignment: .leading, spacing: 2) {
+        Text(h.name)
+          .lineLimit(1)
+        Text("Par \(par) • SI \(h.si[tee])")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+
+      Spacer()
+
+      HStack(spacing: 12) {
+        Stepper(value: Binding(
+          get: { gross },
+          set: { v in setScore(hole: h.number, gross: v, putts: putts) }
+        ), in: 0...15) {
+          Text(gross == 0 ? "—" : "\(gross)")
+            .font(.headline)
+            .frame(width: 28, alignment: .trailing)
+        }
+        .labelsHidden()
+
+        Stepper(value: Binding(
+          get: { putts },
+          set: { v in setScore(hole: h.number, gross: gross, putts: v) }
+        ), in: 0...10) {
+          Text(putts == 0 && gross == 0 ? "—" : "\(putts)P")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(width: 28, alignment: .trailing)
+        }
+        .labelsHidden()
+      }
+
+      if let toPar {
+        Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .frame(width: 36, alignment: .trailing)
+      }
+    }
+    .swipeActions {
+      Button(role: .destructive) {
+        clear(hole: h.number)
+      } label: {
+        Label("Clear", systemImage: "trash")
+      }
+    }
+  }
+
+  private var totalsSection: some View {
+    Group {
+      let tee = teeOverride ?? state.tee
+      let totalStrokes = scores.values.map(\.gross).filter { $0 > 0 }.reduce(0, +)
+      let totalPutts = scores.values.compactMap(\.putts).reduce(0, +)
+      let parTotal = state.course.holes.map { $0.par[tee] }.reduce(0, +)
+
+      HStack {
+        Text("Strokes")
+        Spacer()
+        Text(totalStrokes == 0 ? "—" : "\(totalStrokes)")
+          .font(.headline)
+      }
+
+      HStack {
+        Text("Putts")
+        Spacer()
+        Text(totalPutts == 0 ? "—" : "\(totalPutts)")
+          .font(.headline)
+      }
+
+      HStack {
+        Text("To Par")
+        Spacer()
+        if totalStrokes == 0 {
+          Text("—")
+            .font(.headline)
+        } else {
+          let toPar = totalStrokes - parTotal
+          Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
+            .font(.headline)
+        }
+      }
+    }
+  }
+
   private func refresh() {
-    guard let roundId = roundId ?? state.activeRoundId else { return }
+    guard let rid = effectiveRoundId else {
+      scores = [:]
+      return
+    }
+    scores = (try? GCDB.shared.fetchHoleScores(roundId: rid)) ?? [:]
+    validationMessage = nil
+  }
 
-    var strokes: [Int: Int] = [:]
-    var putts: [Int: Int] = [:]
+  private func setScore(hole: Int, gross: Int, putts: Int) {
+    guard let rid = effectiveRoundId else { return }
 
-    for h in 1...18 {
-      strokes[h] = (try? GCDB.shared.strokesForHole(roundId: roundId, holeNumber: h)) ?? 0
-      putts[h] = (try? GCDB.shared.puttsForHole(roundId: roundId, holeNumber: h)) ?? 0
+    if gross == 0 {
+      clear(hole: hole)
+      return
     }
 
-    holeStrokes = strokes
-    holePutts = putts
+    if gross < 1 || gross > 15 {
+      validationMessage = "Strokes must be 1–15"
+      return
+    }
+
+    if putts < 0 || putts > 10 {
+      validationMessage = "Putts must be 0–10"
+      return
+    }
+
+    do {
+      try GCDB.shared.upsertHoleScore(roundId: rid, holeNumber: hole, gross: gross, putts: putts)
+      scores = (try? GCDB.shared.fetchHoleScores(roundId: rid)) ?? [:]
+      validationMessage = nil
+    } catch {
+      validationMessage = "Save failed: \(error.localizedDescription)"
+    }
+  }
+
+  private func clear(hole: Int) {
+    guard let rid = effectiveRoundId else { return }
+    do {
+      try GCDB.shared.deleteHoleScore(roundId: rid, holeNumber: hole)
+      scores = (try? GCDB.shared.fetchHoleScores(roundId: rid)) ?? [:]
+      validationMessage = nil
+    } catch {
+      validationMessage = "Clear failed: \(error.localizedDescription)"
+    }
   }
 }

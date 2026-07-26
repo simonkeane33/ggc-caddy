@@ -143,40 +143,13 @@ struct StatsDashboardView: View {
     .cornerRadius(12)
   }
   
+  /// v1 stats only: total score (to par) and total putts.
   private func detailedStatsSection(stats: AggregatedStats) -> some View {
     VStack(spacing: 16) {
-      Text("Performance Breakdown")
+      Text("Putts")
         .font(.headline)
         .frame(maxWidth: .infinity, alignment: .leading)
-      
-      // GIR
-      StatProgressRow(
-        title: "Greens in Regulation",
-        percentage: stats.avgGIRPercentage,
-        icon: "flag.fill",
-        color: .green,
-        benchmark: 50 // PGA Tour avg ~65%, good amateurs ~50%
-      )
-      
-      // Fairways
-      StatProgressRow(
-        title: "Fairways Hit",
-        percentage: stats.avgFairwayPercentage,
-        icon: "arrow.up",
-        color: .blue,
-        benchmark: 50 // PGA Tour avg ~60%
-      )
-      
-      // Scrambling
-      StatProgressRow(
-        title: "Scramble Success",
-        percentage: stats.avgScramblePercentage,
-        icon: "arrow.2.squarepath",
-        color: .orange,
-        benchmark: 40 // PGA Tour avg ~58%, good amateurs ~40%
-      )
-      
-      // Putts
+
       if let putts = stats.avgPuttsPerRound {
         HStack {
           HStack(spacing: 8) {
@@ -186,13 +159,12 @@ struct StatsDashboardView: View {
             Text("Putts per Round")
               .font(.subheadline)
           }
-          
+
           Spacer()
-          
+
           Text(String(format: "%.1f", putts))
             .font(.system(.body, design: .rounded, weight: .semibold))
-          
-          // Benchmark indicator
+
           if putts < 30 {
             Text("Excellent")
               .font(.caption)
@@ -225,21 +197,20 @@ struct StatsDashboardView: View {
   
   private func loadStats() async {
     isLoading = true
-    
+
     do {
       let stats = try GCDB.shared.fetchAggregatedStats(limit: selectedTimeRange.limit)
-      
-      // Fetch recent rounds for chart
-      let rounds = try GCDB.shared.listRounds(limit: selectedTimeRange.limit)
+
+      // Only completed rounds contribute to stats
+      let rounds = try GCDB.shared.listCompletedRounds(limit: selectedTimeRange.limit)
       var roundStats: [RoundStatsSummary] = []
       for round in rounds {
-        if let stats = try GCDB.shared.fetchRoundStats(roundId: round.id) {
-          roundStats.append(stats)
+        if let s = try GCDB.shared.fetchRoundStats(roundId: round.id) {
+          roundStats.append(s)
         }
       }
-      // Reverse to show oldest first for chart
       roundStats.reverse()
-      
+
       await MainActor.run {
         self.aggregatedStats = stats
         self.recentRounds = roundStats
@@ -298,76 +269,6 @@ struct OverviewCard: View {
     .background(Color(.systemBackground))
     .cornerRadius(12)
     .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-  }
-}
-
-struct StatProgressRow: View {
-  let title: String
-  let percentage: Double?
-  let icon: String
-  let color: Color
-  let benchmark: Double
-  
-  var body: some View {
-    VStack(spacing: 8) {
-      HStack {
-        HStack(spacing: 8) {
-          Image(systemName: icon)
-            .foregroundColor(color)
-          Text(title)
-            .font(.subheadline)
-        }
-        
-        Spacer()
-        
-        if let pct = percentage {
-          Text("\(Int(pct))%")
-            .font(.system(.body, design: .rounded, weight: .semibold))
-        } else {
-          Text("--")
-            .foregroundColor(.secondary)
-        }
-      }
-      
-      GeometryReader { geo in
-        ZStack(alignment: .leading) {
-          // Background
-          RoundedRectangle(cornerRadius: 4)
-            .fill(Color(.systemGray5))
-            .frame(height: 8)
-          
-          // Progress
-          if let pct = percentage {
-            RoundedRectangle(cornerRadius: 4)
-              .fill(color)
-              .frame(width: geo.size.width * min(pct / 100, 1), height: 8)
-          }
-          
-          // Benchmark marker
-          Circle()
-            .fill(.white)
-            .frame(width: 10, height: 10)
-            .shadow(radius: 2)
-            .offset(x: geo.size.width * (benchmark / 100) - 5)
-        }
-      }
-      .frame(height: 10)
-      
-      HStack {
-        Text("0%")
-          .font(.caption2)
-          .foregroundColor(.secondary)
-        Spacer()
-        Text("Benchmark: \(Int(benchmark))%")
-          .font(.caption2)
-          .foregroundColor(.secondary)
-        Spacer()
-        Text("100%")
-          .font(.caption2)
-          .foregroundColor(.secondary)
-      }
-    }
-    .padding(.vertical, 4)
   }
 }
 

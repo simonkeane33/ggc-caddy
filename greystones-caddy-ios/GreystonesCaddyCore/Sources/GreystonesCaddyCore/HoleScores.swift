@@ -34,4 +34,38 @@ public extension GCDB {
       )
     }
   }
+
+  /// Total score (strokes) from hole_scores for a round.
+  func totalScoreFromHoleScores(roundId: Int64) throws -> Int {
+    try dbQueue.read { db in
+      try Int.fetchOne(
+        db,
+        sql: "SELECT COALESCE(SUM(gross), 0) FROM hole_scores WHERE roundId = ? AND gross > 0",
+        arguments: [roundId]
+      ) ?? 0
+    }
+  }
+
+  /// Total putts from hole_scores for a round.
+  func totalPuttsFromHoleScores(roundId: Int64) throws -> Int {
+    try dbQueue.read { db in
+      try Int.fetchOne(
+        db,
+        sql: "SELECT COALESCE(SUM(putts), 0) FROM hole_scores WHERE roundId = ?",
+        arguments: [roundId]
+      ) ?? 0
+    }
+  }
+
+  /// Holes that have scores (gross > 0) for a round.
+  func holesWithScores(roundId: Int64) throws -> Set<Int> {
+    try dbQueue.read { db in
+      let rows = try Int.fetchAll(
+        db,
+        sql: "SELECT holeNumber FROM hole_scores WHERE roundId = ? AND gross > 0",
+        arguments: [roundId]
+      )
+      return Set(rows)
+    }
+  }
 }

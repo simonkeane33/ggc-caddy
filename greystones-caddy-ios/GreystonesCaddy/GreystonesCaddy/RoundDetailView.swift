@@ -10,9 +10,32 @@ struct RoundDetailView: View {
   @State private var holePutts: [Int: Int] = [:]
   @State private var holePens: [Int: Int] = [:]
   @State private var holeScoreOverrides: [Int: HoleScore] = [:]
+  @State private var totalScoreFromHoleScores: Int = 0
+  @State private var totalPuttsFromHoleScores: Int = 0
 
   var body: some View {
     List {
+      if totalScoreFromHoleScores > 0 || totalPuttsFromHoleScores > 0 {
+        Section("Score summary") {
+          if totalScoreFromHoleScores > 0 {
+            HStack {
+              Text("Total score")
+              Spacer()
+              Text("\(totalScoreFromHoleScores)")
+                .font(.headline)
+            }
+          }
+          if totalPuttsFromHoleScores > 0 {
+            HStack {
+              Text("Total putts")
+              Spacer()
+              Text("\(totalPuttsFromHoleScores)")
+                .foregroundStyle(.secondary)
+            }
+          }
+        }
+      }
+
       Section("Round") {
         HStack {
           Text("Date")
@@ -64,6 +87,12 @@ struct RoundDetailView: View {
           }
         }
 
+        HStack {
+          Text("Status")
+          Spacer()
+          Text(completionStateLabel(round.completionState))
+            .foregroundStyle(completionStateColor(round.completionState))
+        }
         if let ended = round.endedAt {
           HStack {
             Text("Ended")
@@ -95,6 +124,7 @@ struct RoundDetailView: View {
       Section {
         NavigationLink("Scorecard") {
           ScorecardView(roundId: round.id, tee: round.tee, unit: round.distanceUnit)
+            .onDisappear { refresh() }
         }
         NavigationLink("Office scorecard") {
           OfficeScorecardView(round: round)
@@ -169,6 +199,9 @@ struct RoundDetailView: View {
     var putts: [Int: Int] = [:]
     var pens: [Int: Int] = [:]
 
+    let overrides = (try? GCDB.shared.fetchHoleScores(roundId: round.id)) ?? [:]
+    holeScoreOverrides = overrides
+
     for h in 1...18 {
       strokes[h] = (try? GCDB.shared.strokesForHole(roundId: round.id, holeNumber: h)) ?? 0
       putts[h] = (try? GCDB.shared.puttsForHole(roundId: round.id, holeNumber: h)) ?? 0
@@ -180,7 +213,25 @@ struct RoundDetailView: View {
     holeStrokes = strokes
     holePutts = putts
     holePens = pens
-    holeScoreOverrides = (try? GCDB.shared.fetchHoleScores(roundId: round.id)) ?? [:]
+
+    totalScoreFromHoleScores = (try? GCDB.shared.totalScoreFromHoleScores(roundId: round.id)) ?? 0
+    totalPuttsFromHoleScores = (try? GCDB.shared.totalPuttsFromHoleScores(roundId: round.id)) ?? 0
+  }
+
+  private func completionStateLabel(_ s: RoundCompletionState) -> String {
+    switch s {
+    case .inProgress: return "In progress"
+    case .completed: return "Completed"
+    case .abandoned: return "Abandoned"
+    }
+  }
+
+  private func completionStateColor(_ s: RoundCompletionState) -> Color {
+    switch s {
+    case .inProgress: return .orange
+    case .completed: return .primary
+    case .abandoned: return .secondary
+    }
   }
 
   private func stablefordTotals(playingHandicap: Int) -> (points: Int, gross: Int) {
@@ -188,7 +239,7 @@ struct RoundDetailView: View {
     var gross = 0
 
     for h in state.course.holes {
-      let s = holeStrokes[h.number] ?? 0
+      let s = holeScoreOverrides[h.number]?.gross ?? (holeStrokes[h.number] ?? 0)
       if s == 0 { continue }
       gross += s
 

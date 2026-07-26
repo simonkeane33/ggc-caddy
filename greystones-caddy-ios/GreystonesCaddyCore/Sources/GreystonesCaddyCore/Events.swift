@@ -81,4 +81,21 @@ public extension GCDB {
       )
     }
   }
+
+  func updateShotPosition(id: Int64, lat: Double, lng: Double, alt: Double?) throws {
+    try dbQueue.write { db in
+      let cols = try db.columns(in: "shots").map(\.name)
+      if cols.contains("alt") {
+        try db.execute(
+          sql: "UPDATE shots SET lat = ?, lng = ?, alt = ? WHERE id = ?",
+          arguments: [lat, lng, alt ?? 0, id]
+        )
+      } else {
+        try db.execute(
+          sql: "UPDATE shots SET lat = ?, lng = ? WHERE id = ?",
+          arguments: [lat, lng, id]
+        )
+      }
+    }
+  }
 }

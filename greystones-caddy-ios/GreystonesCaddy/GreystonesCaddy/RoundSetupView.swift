@@ -5,6 +5,8 @@ struct RoundSetupView: View {
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject var state: AppState
   @State private var goLive: Bool = false
+  @State private var showInProgressAlert: Bool = false
+  @State private var pendingReplacementRound: RoundSummary? = nil
 
   @FocusState private var focusField: Field?
   enum Field { case handicapIndex }
@@ -85,45 +87,13 @@ struct RoundSetupView: View {
       Section {
         Button {
           do {
-            // Ensure caddy layer templates exist for all holes.
-            try seedHolePlansIfNeeded()
-            try seedHoleGuidesIfNeeded()
-
-            let roundId = try GCDB.shared.createRound(tee: state.tee, distanceUnit: state.unit)
-
-            // Persist round settings.
-            let hi = Double(handicapIndexText.trimmingCharacters(in: .whitespacesAndNewlines))
-
-            let parTotal = state.course.holes.reduce(0) { $0 + $1.par[state.tee] }
-            let tee = state.course.tees.first(where: { $0.id == state.tee })
-            let rating = tee?.men
-            let ch = (hi != nil && rating != nil) ? WHS.courseHandicap(handicapIndex: hi!, slope: rating!.slopeRating, courseRating: rating!.courseRating, par: parTotal) : nil
-            let ph = (ch != nil) ? WHS.playingHandicap(courseHandicap: ch!, allowancePct: allowancePct) : nil
-
-            try? GCDB.shared.updateRoundSettings(
-              roundId: roundId,
-              gameType: gameType,
-              handicapIndex: hi,
-              allowancePct: allowancePct,
-              courseHandicap: ch,
-              playingHandicap: ph
-            )
-
-            // Save preferences for next round
-            if let handicap = hi {
-              UserDefaults.standard.set(handicap, forKey: handicapIndexKey)
-              print("DEBUG: Saved handicap: \(handicap)")
+            if let existing = try? GCDB.shared.fetchActiveRound() {
+              pendingReplacementRound = existing
+              showInProgressAlert = true
+              return
             }
-            UserDefaults.standard.set(gameType.rawValue, forKey: gameTypeKey)
-            UserDefaults.standard.set(allowancePct, forKey: allowancePctKey)
-            UserDefaults.standard.synchronize() // Force immediate save
-            print("DEBUG: Saved game type: \(gameType.rawValue), allowance: \(allowancePct)")
-
-            state.activeRoundId = roundId
-            state.resetToNewRoundDefaults()
-            goLive = true
+            try startFreshRound()
           } catch {
-            // For MVP: crash with context rather than fail silently.
             fatalError("Failed to create round: \(error)")
           }
         } label: {
@@ -140,28 +110,20 @@ struct RoundSetupView: View {
       }
     }
     .onAppear {
-      // Load saved preferences
       let savedHandicap = UserDefaults.standard.double(forKey: handicapIndexKey)
-      print("DEBUG: Loading saved handicap: \(savedHandicap)")
       if savedHandicap > 0 {
         handicapIndexText = String(format: "%.1f", savedHandicap)
-        print("DEBUG: Set handicapIndexText to: \(handicapIndexText)")
       }
-      
       if let savedGameTypeRaw = UserDefaults.standard.string(forKey: gameTypeKey),
          let savedGameType = GameType(rawValue: savedGameTypeRaw) {
         gameType = savedGameType
-        print("DEBUG: Loaded game type: \(savedGameType)")
       }
-      
       let savedAllowance = UserDefaults.standard.double(forKey: allowancePctKey)
-      print("DEBUG: Loading saved allowance: \(savedAllowance)")
       if savedAllowance > 0 {
         allowancePct = savedAllowance
       } else {
         allowancePct = gameType.defaultAllowancePct
       }
-      
       recompute()
     }
     .onChange(of: gameType) { _, newValue in
@@ -180,6 +142,64 @@ struct RoundSetupView: View {
     .navigationDestination(isPresented: $goLive) {
       MainGameView()
     }
+    .onChange(of: state.abandonTriggered) { _, triggered in
+      if triggered {
+        state.abandonTriggered = false
+        dismiss()
+      }
+    }
+    .alert("Round in progress", isPresented: $showInProgressAlert) {
+      Button("Cancel current round", role: .destructive) {
+        guard let existing = pendingReplacementRound else { return }
+        do {
+          try GCDB.shared.abandonRound(roundId: existing.id)
+          state.activeRoundId = nil
+          state.holeNumber = 1
+          pendingReplacementRound = nil
+          try startFreshRound()
+        } catch {
+          fatalError("Failed to abandon and start new round: \(error)")
+        }
+      }
+      Button("Keep current round", role: .cancel) {
+        pendingReplacementRound = nil
+      }
+    } message: {
+      Text("Round in progress. Cancel round in progress and start a new round?")
+    }
+  }
+
+  private func startFreshRound() throws {
+    try seedHolePlansIfNeeded()
+    try seedHoleGuidesIfNeeded()
+
+    let roundId = try GCDB.shared.createRound(tee: state.tee, distanceUnit: state.unit, course: state.course.course.name)
+
+    let hi = Double(handicapIndexText.trimmingCharacters(in: .whitespacesAndNewlines))
+    let parTotal = state.course.holes.reduce(0) { $0 + $1.par[state.tee] }
+    let tee = state.course.tees.first(where: { $0.id == state.tee })
+    let rating = tee?.men
+    let ch = (hi != nil && rating != nil) ? WHS.courseHandicap(handicapIndex: hi!, slope: rating!.slopeRating, courseRating: rating!.courseRating, par: parTotal) : nil
+    let ph = (ch != nil) ? WHS.playingHandicap(courseHandicap: ch!, allowancePct: allowancePct) : nil
+
+    try? GCDB.shared.updateRoundSettings(
+      roundId: roundId,
+      gameType: gameType,
+      handicapIndex: hi,
+      allowancePct: allowancePct,
+      courseHandicap: ch,
+      playingHandicap: ph
+    )
+
+    if let handicap = hi {
+      UserDefaults.standard.set(handicap, forKey: handicapIndexKey)
+    }
+    UserDefaults.standard.set(gameType.rawValue, forKey: gameTypeKey)
+    UserDefaults.standard.set(allowancePct, forKey: allowancePctKey)
+
+    state.activeRoundId = roundId
+    state.resetToNewRoundDefaults()
+    goLive = true
   }
 
   private func recompute() {

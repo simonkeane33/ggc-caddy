@@ -1,10 +1,12 @@
 import SwiftUI
+import CoreLocation
 import GreystonesCaddyCore
 
 struct EventEditView: View {
   let event: HoleEvent
 
   @Environment(\.dismiss) private var dismiss
+  @StateObject private var loc = LocationProvider()
 
   @State private var selectedClub: ClubID = .iron7
   @State private var shotType: ShotType = .full
@@ -34,6 +36,12 @@ struct EventEditView: View {
             ForEach(ClubID.allCases) { c in
               Text(c.rawValue).tag(c)
             }
+          }
+        }
+
+        Section("Position") {
+          Button("Recapture position") {
+            recapturePosition()
           }
         }
 
@@ -72,6 +80,20 @@ struct EventEditView: View {
       selectedClub = event.club
       shotType = event.shotType
       penaltyStrokes = event.penaltyStrokes ?? 1
+    }
+  }
+
+  private func recapturePosition() {
+    guard let l = loc.lastLocation else {
+      message = "Waiting for GPS…"
+      return
+    }
+    let alt: Double? = (l.altitude >= 0) ? l.altitude : nil
+    do {
+      try GCDB.shared.updateShotPosition(id: event.id, lat: l.coordinate.latitude, lng: l.coordinate.longitude, alt: alt)
+      message = "Position updated"
+    } catch {
+      message = "Failed to update position: \(error.localizedDescription)"
     }
   }
 

@@ -248,7 +248,7 @@ struct HoleInsightsView: View {
   
   private func fetchAllHoleStats(holeNumber: Int) throws -> [HoleStats] {
     // Get all round IDs first
-    let rounds = try GCDB.shared.listRounds(limit: 100)
+    let rounds = try GCDB.shared.listCompletedRounds(limit: 100)
     
     var allStats: [HoleStats] = []
     for round in rounds {

@@ -286,6 +286,57 @@ public final class GCDB: @unchecked Sendable {
       }
     }
 
+    // v1 canonical: shots need alt, isPutt, sequence; rounds need course
+    migrator.registerMigration("v12") { db in
+      if try db.tableExists("shots") {
+        let cols = try db.columns(in: "shots").map(\.name)
+        if !cols.contains("alt") {
+          try db.alter(table: "shots") { t in
+            t.add(column: "alt", .double)
+          }
+        }
+        if !cols.contains("isPutt") {
+          try db.alter(table: "shots") { t in
+            t.add(column: "isPutt", .boolean).notNull().defaults(to: false)
+          }
+          try db.execute(sql: "UPDATE shots SET isPutt = 1 WHERE club = 'Putter' OR shotType = 'putt'")
+        }
+        if !cols.contains("sequence") {
+          try db.alter(table: "shots") { t in
+            t.add(column: "sequence", .integer)
+          }
+          try db.execute(sql: """
+            UPDATE shots SET sequence = (
+              SELECT COUNT(*) FROM shots s2
+              WHERE s2.roundId = shots.roundId AND s2.holeNumber = shots.holeNumber
+                AND (s2.ts < shots.ts OR (s2.ts = shots.ts AND s2.id <= shots.id))
+            )
+            """)
+        }
+      }
+      if try db.tableExists("rounds") {
+        let cols = try db.columns(in: "rounds").map(\.name)
+        if !cols.contains("course") {
+          try db.alter(table: "rounds") { t in
+            t.add(column: "course", .text).notNull().defaults(to: "Greystones")
+          }
+        }
+      }
+    }
+
+    // v1 canonical: completionState (in_progress, completed, abandoned)
+    migrator.registerMigration("v13") { db in
+      if try db.tableExists("rounds") {
+        let cols = try db.columns(in: "rounds").map(\.name)
+        if !cols.contains("completionState") {
+          try db.alter(table: "rounds") { t in
+            t.add(column: "completionState", .text).notNull().defaults(to: "in_progress")
+          }
+          try db.execute(sql: "UPDATE rounds SET completionState = CASE WHEN endedAt IS NULL THEN 'in_progress' ELSE 'completed' END")
+        }
+      }
+    }
+
     migrator.registerMigration("v11") { db in
       try db.execute(sql: "DROP TABLE IF EXISTS hole_green_centers")
       try db.execute(sql: "DROP TABLE IF EXISTS hole_tee_locations")
@@ -351,63 +402,109 @@ public struct ShotRecord: Codable, FetchableRecord, PersistableRecord, Sendable 
   public var ts: Date
   public var lat: Double
   public var lng: Double
+  public var alt: Double?
   public var hAcc: Double?
   public var club: ClubID
   public var shotType: ShotType
   public var kind: ShotKind
   public var penaltyStrokes: Int?
+  public var isPutt: Bool
+  public var sequence: Int?
 }
 
 public extension GCDB {
-  func createRound(tee: TeeID, distanceUnit: DistanceUnit) throws -> Int64 {
+  func createRound(tee: TeeID, distanceUnit: DistanceUnit, course: String = "Greystones") throws -> Int64 {
     try dbQueue.write { db in
-      try db.execute(
-        sql: "INSERT INTO rounds (startedAt, tee, distanceUnit, gameType) VALUES (?, ?, ?, ?)",
-        arguments: [Date(), tee.rawValue, distanceUnit.rawValue, GameType.stroke.rawValue]
-      )
+      let cols = try db.columns(in: "rounds").map(\.name)
+      let hasCourse = cols.contains("course")
+      let hasState = cols.contains("completionState")
+      if hasCourse && hasState {
+        try db.execute(
+          sql: "INSERT INTO rounds (startedAt, tee, distanceUnit, gameType, course, completionState) VALUES (?, ?, ?, ?, ?, ?)",
+          arguments: [Date(), tee.rawValue, distanceUnit.rawValue, GameType.stroke.rawValue, course, RoundCompletionState.inProgress.rawValue]
+        )
+      } else if hasCourse {
+        try db.execute(
+          sql: "INSERT INTO rounds (startedAt, tee, distanceUnit, gameType, course) VALUES (?, ?, ?, ?, ?)",
+          arguments: [Date(), tee.rawValue, distanceUnit.rawValue, GameType.stroke.rawValue, course]
+        )
+      } else {
+        try db.execute(
+          sql: "INSERT INTO rounds (startedAt, tee, distanceUnit, gameType) VALUES (?, ?, ?, ?)",
+          arguments: [Date(), tee.rawValue, distanceUnit.rawValue, GameType.stroke.rawValue]
+        )
+      }
       return db.lastInsertedRowID
     }
   }
 
-  func addShot(roundId: Int64, holeNumber: Int, location: (lat: Double, lng: Double, hAcc: Double?), club: ClubID, shotType: ShotType) throws {
+  func addShot(roundId: Int64, holeNumber: Int, location: (lat: Double, lng: Double, alt: Double?, hAcc: Double?), club: ClubID, shotType: ShotType) throws {
     let inferred: ShotType = (club == .putter) ? .putt : shotType
-
-    let s = ShotRecord(
-      id: nil,
-      roundId: roundId,
-      holeNumber: holeNumber,
-      ts: Date(),
-      lat: location.lat,
-      lng: location.lng,
-      hAcc: location.hAcc,
-      club: club,
-      shotType: inferred,
-      kind: .shot,
-      penaltyStrokes: nil
-    )
+    let isPutt = (inferred == .putt)
 
     try dbQueue.write { db in
+      let nextSeq: Int
+      if try db.columns(in: "shots").map(\.name).contains("sequence") {
+        nextSeq = (try Int.fetchOne(
+          db,
+          sql: "SELECT COUNT(*) FROM shots WHERE roundId = ? AND holeNumber = ?",
+          arguments: [roundId, holeNumber]
+        ) ?? 0) + 1
+      } else {
+        nextSeq = 1
+      }
+
+      let s = ShotRecord(
+        id: nil,
+        roundId: roundId,
+        holeNumber: holeNumber,
+        ts: Date(),
+        lat: location.lat,
+        lng: location.lng,
+        alt: location.alt,
+        hAcc: location.hAcc,
+        club: club,
+        shotType: inferred,
+        kind: .shot,
+        penaltyStrokes: nil,
+        isPutt: isPutt,
+        sequence: nextSeq
+      )
+
       try s.insert(db)
     }
   }
 
-  func addPenalty(roundId: Int64, holeNumber: Int, location: (lat: Double, lng: Double, hAcc: Double?), strokes: Int) throws {
-    // club is irrelevant for penalties; store putter just to satisfy non-null.
-    let s = ShotRecord(
-      id: nil,
-      roundId: roundId,
-      holeNumber: holeNumber,
-      ts: Date(),
-      lat: location.lat,
-      lng: location.lng,
-      hAcc: location.hAcc,
-      club: .putter,
-      shotType: .full,
-      kind: .penalty,
-      penaltyStrokes: strokes
-    )
-
+  func addPenalty(roundId: Int64, holeNumber: Int, location: (lat: Double, lng: Double, alt: Double?, hAcc: Double?), strokes: Int) throws {
     try dbQueue.write { db in
+      let nextSeq: Int
+      if try db.columns(in: "shots").map(\.name).contains("sequence") {
+        nextSeq = (try Int.fetchOne(
+          db,
+          sql: "SELECT COUNT(*) FROM shots WHERE roundId = ? AND holeNumber = ?",
+          arguments: [roundId, holeNumber]
+        ) ?? 0) + 1
+      } else {
+        nextSeq = 1
+      }
+
+      let s = ShotRecord(
+        id: nil,
+        roundId: roundId,
+        holeNumber: holeNumber,
+        ts: Date(),
+        lat: location.lat,
+        lng: location.lng,
+        alt: location.alt,
+        hAcc: location.hAcc,
+        club: .putter,
+        shotType: .full,
+        kind: .penalty,
+        penaltyStrokes: strokes,
+        isPutt: false,
+        sequence: nextSeq
+      )
+
       try s.insert(db)
     }
   }

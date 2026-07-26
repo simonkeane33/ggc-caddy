@@ -16,6 +16,9 @@ final class AppState: ObservableObject {
   @Published var activeRoundId: Int64? = nil
   @Published var holeNumber: Int = 1
 
+  /// Set when user confirms abandon; triggers RoundSetupView to dismiss back to Home. No post-abandon detail view.
+  @Published var abandonTriggered: Bool = false
+
   @Published var favouriteClubs: [ClubID] = Club.defaultFavourites
   @Published var selectedClub: ClubID = Club.defaultFavourites.last ?? .putter
 

@@ -1,18 +1,19 @@
 import SwiftUI
 import GreystonesCaddyCore
 
-/// Simple hole-by-hole gross entry to mirror the physical office scorecard.
+/// Simple hole-by-hole gross and putts entry to mirror the physical office scorecard.
 struct OfficeScorecardView: View {
   @EnvironmentObject var state: AppState
 
   let round: RoundSummary
 
   @State private var scores: [Int: HoleScore] = [:]
+  @State private var validationMessage: String? = nil
 
   var body: some View {
     List {
       Section {
-        Text("Enter gross score per hole. This is useful at the end of the round when you need to fill in the office card.")
+        Text("Enter strokes and putts per hole. Strokes 1–15, putts required.")
           .font(.footnote)
           .foregroundStyle(.secondary)
       }
@@ -26,6 +27,7 @@ struct OfficeScorecardView: View {
 
           let current = scores[holeNo]
           let gross = current?.gross ?? 0
+          let putts = current?.putts ?? 0
 
           HStack {
             VStack(alignment: .leading, spacing: 2) {
@@ -38,15 +40,28 @@ struct OfficeScorecardView: View {
 
             Spacer()
 
-            Stepper(value: Binding(
-              get: { gross },
-              set: { v in setGross(hole: holeNo, gross: v) }
-            ), in: 0...20) {
-              Text(gross == 0 ? "—" : "\(gross)")
-                .font(.headline)
-                .frame(width: 34, alignment: .trailing)
+            HStack(spacing: 12) {
+              Stepper(value: Binding(
+                get: { gross },
+                set: { v in setScore(hole: holeNo, gross: v, putts: putts) }
+              ), in: 0...15) {
+                Text(gross == 0 ? "—" : "\(gross)")
+                  .font(.headline)
+                  .frame(width: 34, alignment: .trailing)
+              }
+              .labelsHidden()
+
+              Stepper(value: Binding(
+                get: { putts },
+                set: { v in setScore(hole: holeNo, gross: gross, putts: v) }
+              ), in: 0...10) {
+                Text(putts == 0 && gross == 0 ? "—" : "\(putts)P")
+                  .font(.subheadline)
+                  .foregroundStyle(.secondary)
+                  .frame(width: 32, alignment: .trailing)
+              }
+              .labelsHidden()
             }
-            .labelsHidden()
           }
           .swipeActions {
             Button(role: .destructive) {
@@ -54,6 +69,36 @@ struct OfficeScorecardView: View {
             } label: {
               Label("Clear", systemImage: "trash")
             }
+          }
+        }
+      }
+
+      Section("Totals") {
+        let totalStrokes = scores.values.map(\.gross).filter { $0 > 0 }.reduce(0, +)
+        let totalPutts = scores.values.compactMap(\.putts).reduce(0, +)
+        let parTotal = state.course.holes.map { $0.par[round.tee] }.reduce(0, +)
+
+        HStack {
+          Text("Strokes")
+          Spacer()
+          Text(totalStrokes == 0 ? "—" : "\(totalStrokes)")
+            .font(.headline)
+        }
+        HStack {
+          Text("Putts")
+          Spacer()
+          Text(totalPutts == 0 ? "—" : "\(totalPutts)")
+            .font(.headline)
+        }
+        HStack {
+          Text("To Par")
+          Spacer()
+          if totalStrokes == 0 {
+            Text("—")
+          } else {
+            let toPar = totalStrokes - parTotal
+            Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
+              .font(.headline)
           }
         }
       }
@@ -69,6 +114,14 @@ struct OfficeScorecardView: View {
           }
         }
       }
+
+      if let msg = validationMessage {
+        Section {
+          Text(msg)
+            .font(.footnote)
+            .foregroundStyle(.orange)
+        }
+      }
     }
     .navigationTitle("Office scorecard")
     .onAppear { load() }
@@ -76,28 +129,41 @@ struct OfficeScorecardView: View {
 
   private func load() {
     scores = (try? GCDB.shared.fetchHoleScores(roundId: round.id)) ?? [:]
+    validationMessage = nil
   }
 
-  private func setGross(hole: Int, gross: Int) {
+  private func setScore(hole: Int, gross: Int, putts: Int) {
     if gross == 0 {
       clear(hole: hole)
       return
     }
 
+    if gross < 1 || gross > 15 {
+      validationMessage = "Strokes must be 1–15"
+      return
+    }
+
+    if putts < 0 || putts > 10 {
+      validationMessage = "Putts must be 0–10"
+      return
+    }
+
     do {
-      try GCDB.shared.upsertHoleScore(roundId: round.id, holeNumber: hole, gross: gross, putts: scores[hole]?.putts)
+      try GCDB.shared.upsertHoleScore(roundId: round.id, holeNumber: hole, gross: gross, putts: putts)
       scores = (try? GCDB.shared.fetchHoleScores(roundId: round.id)) ?? [:]
+      validationMessage = nil
     } catch {
-      // ignore for MVP
+      validationMessage = "Save failed: \(error.localizedDescription)"
     }
   }
 
   private func clear(hole: Int) {
     do {
       try GCDB.shared.deleteHoleScore(roundId: round.id, holeNumber: hole)
-      scores.removeValue(forKey: hole)
+      scores = (try? GCDB.shared.fetchHoleScores(roundId: round.id)) ?? [:]
+      validationMessage = nil
     } catch {
-      // ignore for MVP
+      validationMessage = "Clear failed: \(error.localizedDescription)"
     }
   }
 

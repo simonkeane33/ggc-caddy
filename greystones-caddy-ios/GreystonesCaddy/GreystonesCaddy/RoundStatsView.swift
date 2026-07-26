@@ -1,66 +1,128 @@
 import SwiftUI
 import GreystonesCaddyCore
 
-/// Displays comprehensive stats for a round.
+/// Displays comprehensive stats for a round. Supports completion flow when showing active round.
 struct RoundStatsView: View {
   let roundId: Int64
   let course: CourseBundle
-  
+
+  @EnvironmentObject var state: AppState
+  @Environment(\.dismiss) private var dismiss
+
   @State private var stats: RoundStatsSummary?
-  @State private var holeStats: [HoleStats] = []
   @State private var isLoading = true
   @State private var errorMessage: String?
-  
+  @State private var totalScoreFromHoleScores: Int = 0
+  @State private var totalPuttsFromHoleScores: Int = 0
+  @State private var holesWithScores: Set<Int> = []
+  @State private var showMissingScoresAlert = false
+  @State private var showCompleteSuccess = false
+  @State private var completedRound: RoundSummary?
+
+  private var isCompletionFlow: Bool {
+    state.activeRoundId == roundId
+  }
+
   var body: some View {
     ScrollView {
       VStack(spacing: 16) {
         if isLoading {
           ProgressView("Calculating stats...")
             .padding()
-        } else if let error = errorMessage {
-          Text("Error: \(error)")
-            .foregroundColor(.red)
-            .padding()
-        } else if let stats = stats {
-          // Summary Cards
-          summarySection(stats: stats)
-          
-          // Detailed Stats Grid
-          statsGrid(stats: stats)
-          
-          // Hole-by-Hole Breakdown
-          holeBreakdownSection
+        } else {
+          if isCompletionFlow {
+            completionSummarySection
+          }
+
+          if let error = errorMessage {
+            Text("Error: \(error)")
+              .foregroundColor(.red)
+              .padding()
+          } else {
+            v1StatsSection
+          }
+
+          if isCompletionFlow {
+            completeRoundSection
+          }
         }
       }
       .padding()
     }
-    .navigationTitle("Round Stats")
+    .navigationTitle(isCompletionFlow ? "Complete Round" : "Round Stats")
     .task {
       await loadStats()
     }
+    .alert("Missing scores", isPresented: $showMissingScoresAlert) {
+      Button("Complete anyway", role: .destructive) {
+        performComplete()
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      let missing = (1...18).filter { !holesWithScores.contains($0) }
+      Text("Holes \(missing.map(\.description).joined(separator: ", ")) have no scores. Complete anyway?")
+    }
+    .navigationDestination(item: $completedRound) { r in
+      RoundDetailView(round: r)
+    }
   }
-  
-  // MARK: - Sections
-  
-  private func summarySection(stats: RoundStatsSummary) -> some View {
+
+  private var completionSummarySection: some View {
     VStack(spacing: 12) {
       HStack(spacing: 16) {
         StatCard(
           title: "Score",
-          value: "\(stats.totalStrokes)",
-          subtitle: scoreToParText(stats.scoreToPar),
-          color: scoreColor(stats.scoreToPar)
+          value: totalScoreFromHoleScores == 0 ? "—" : "\(totalScoreFromHoleScores)",
+          subtitle: "From scorecard",
+          color: .primary
         )
-        
         StatCard(
           title: "Putts",
-          value: "\(stats.totalPutts)",
-          subtitle: String(format: "%.1f per round", stats.puttsPerRound),
+          value: totalPuttsFromHoleScores == 0 ? "—" : "\(totalPuttsFromHoleScores)",
+          subtitle: "From scorecard",
           color: .blue
         )
       }
-      
-      if stats.totalPenalties > 0 {
+    }
+  }
+
+  private var completeRoundSection: some View {
+    VStack(spacing: 12) {
+      Button {
+        attemptComplete()
+      } label: {
+        Text("Complete round")
+          .font(.headline)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 14)
+      }
+      .buttonStyle(.borderedProminent)
+      .controlSize(.large)
+    }
+    .padding(.top, 8)
+  }
+  
+  // MARK: - Sections (v1 canonical: total score, total putts only)
+
+  private var v1StatsSection: some View {
+    VStack(spacing: 12) {
+      HStack(spacing: 16) {
+        StatCard(
+          title: "Score",
+          value: totalScoreFromHoleScores == 0 ? "—" : "\(totalScoreFromHoleScores)",
+          subtitle: stats.map { scoreToParText($0.scoreToPar) } ?? "From scorecard",
+          color: stats.map { scoreColor($0.scoreToPar) } ?? .primary
+        )
+
+        StatCard(
+          title: "Putts",
+          value: totalPuttsFromHoleScores == 0 ? "—" : "\(totalPuttsFromHoleScores)",
+          subtitle: "From scorecard",
+          color: .blue
+        )
+      }
+
+      if let stats = stats, stats.totalPenalties > 0 {
         HStack {
           Image(systemName: "exclamationmark.triangle.fill")
             .foregroundColor(.orange)
@@ -72,68 +134,6 @@ struct RoundStatsView: View {
         .padding(.horizontal, 4)
       }
     }
-  }
-  
-  private func statsGrid(stats: RoundStatsSummary) -> some View {
-    VStack(spacing: 12) {
-      Text("Key Statistics")
-        .font(.headline)
-        .frame(maxWidth: .infinity, alignment: .leading)
-      
-      LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-        PercentageStatCard(
-          title: "Greens in Regulation",
-          percentage: stats.girPercentage,
-          count: stats.girCount,
-          opportunities: stats.girOpportunities,
-          icon: "flag.fill",
-          color: .green
-        )
-        
-        PercentageStatCard(
-          title: "Fairways Hit",
-          percentage: stats.fairwayPercentage,
-          count: stats.fairwayCount,
-          opportunities: stats.fairwayOpportunities,
-          icon: "arrow.up",
-          color: .blue
-        )
-        
-        PercentageStatCard(
-          title: "Scramble Success",
-          percentage: stats.scramblePercentage,
-          count: stats.scrambleCount,
-          opportunities: stats.scrambleOpportunities,
-          icon: "arrow.2.squarepath",
-          color: .orange
-        )
-        
-        StatCard(
-          title: "Putts/Round",
-          value: String(format: "%.1f", stats.puttsPerRound),
-          subtitle: stats.puttsPerRound < 30 ? "Great!" : stats.puttsPerRound < 34 ? "Good" : "Work on putting",
-          color: stats.puttsPerRound < 30 ? .green : stats.puttsPerRound < 34 ? .yellow : .orange
-        )
-      }
-    }
-    .padding()
-    .background(Color(.systemGray6))
-    .cornerRadius(12)
-  }
-  
-  private var holeBreakdownSection: some View {
-    VStack(spacing: 12) {
-      Text("Hole-by-Hole")
-        .font(.headline)
-        .frame(maxWidth: .infinity, alignment: .leading)
-      
-      ForEach(holeStats) { hole in
-        HoleStatRow(hole: hole, course: course)
-      }
-    }
-    .padding()
-    .background(Color(.systemGray6))
-    .cornerRadius(12)
   }
   
   // MARK: - Helpers
@@ -153,15 +153,22 @@ struct RoundStatsView: View {
   private func loadStats() async {
     isLoading = true
     errorMessage = nil
-    
+
     do {
-      // Compute stats if needed
-      let summary = try GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: course)
-      let holes = try GCDB.shared.fetchHoleStatsForRound(roundId: roundId)
-      
+      let totalScore = try GCDB.shared.totalScoreFromHoleScores(roundId: roundId)
+      let totalPutts = try GCDB.shared.totalPuttsFromHoleScores(roundId: roundId)
+      let scored = try GCDB.shared.holesWithScores(roundId: roundId)
+
+      await MainActor.run {
+        self.totalScoreFromHoleScores = totalScore
+        self.totalPuttsFromHoleScores = totalPutts
+        self.holesWithScores = scored
+      }
+
+      let summary = try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: course)
+
       await MainActor.run {
         self.stats = summary
-        self.holeStats = holes
         self.isLoading = false
       }
     } catch {
@@ -169,6 +176,28 @@ struct RoundStatsView: View {
         self.errorMessage = error.localizedDescription
         self.isLoading = false
       }
+    }
+  }
+
+  private func attemptComplete() {
+    let missing = (1...18).filter { !holesWithScores.contains($0) }
+    if !missing.isEmpty {
+      showMissingScoresAlert = true
+    } else {
+      performComplete()
+    }
+  }
+
+  private func performComplete() {
+    do {
+      try GCDB.shared.completeRound(roundId: roundId)
+      state.activeRoundId = nil
+      state.holeNumber = 1
+      if let r = try? GCDB.shared.fetchRound(roundId: roundId) {
+        completedRound = r
+      }
+    } catch {
+      errorMessage = error.localizedDescription
     }
   }
 }
@@ -203,157 +232,6 @@ struct StatCard: View {
     .background(Color(.systemBackground))
     .cornerRadius(12)
     .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-  }
-}
-
-struct PercentageStatCard: View {
-  let title: String
-  let percentage: Double?
-  let count: Int
-  let opportunities: Int
-  let icon: String
-  let color: Color
-  
-  var body: some View {
-    VStack(spacing: 8) {
-      HStack {
-        Image(systemName: icon)
-          .foregroundColor(color)
-        Text(title)
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .textCase(.uppercase)
-      }
-      
-      if let pct = percentage {
-        Text("\(Int(pct))%")
-          .font(.system(size: 28, weight: .bold, design: .rounded))
-          .foregroundColor(color)
-        
-        Text("\(count)/\(opportunities)")
-          .font(.caption)
-          .foregroundColor(.secondary)
-      } else {
-        Text("--")
-          .font(.system(size: 28, weight: .bold, design: .rounded))
-          .foregroundColor(.secondary)
-        
-        Text("No data")
-          .font(.caption)
-          .foregroundColor(.secondary)
-      }
-    }
-    .frame(maxWidth: .infinity)
-    .padding()
-    .background(Color(.systemBackground))
-    .cornerRadius(12)
-    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-  }
-}
-
-struct HoleStatRow: View {
-  let hole: HoleStats
-  let course: CourseBundle
-  
-  var body: some View {
-    HStack(spacing: 12) {
-      // Hole number
-      Text("\(hole.holeNumber)")
-        .font(.system(.body, design: .rounded, weight: .bold))
-        .frame(width: 32, height: 32)
-        .background(scoreBackgroundColor)
-        .foregroundColor(scoreForegroundColor)
-        .clipShape(Circle())
-      
-      // Hole info
-      VStack(alignment: .leading, spacing: 2) {
-        if let holeName = course.holes.first(where: { $0.number == hole.holeNumber })?.name {
-          Text(holeName)
-            .font(.subheadline)
-            .fontWeight(.medium)
-        }
-        Text("Par \(hole.par)")
-          .font(.caption)
-          .foregroundColor(.secondary)
-      }
-      
-      Spacer()
-      
-      // Stats indicators
-      HStack(spacing: 8) {
-        if hole.gir == true {
-          GIRBadge()
-        }
-        if hole.fairwayHit == true {
-          FairwayBadge()
-        }
-        if hole.scramble == true {
-          ScrambleBadge()
-        }
-        
-        // Score
-        Text("\(hole.strokes)")
-          .font(.system(.body, design: .rounded, weight: .semibold))
-          .foregroundColor(scoreToParColor(hole.scoreToPar))
-      }
-    }
-    .padding(.vertical, 4)
-  }
-  
-  private var scoreBackgroundColor: Color {
-    if hole.scoreToPar <= -1 { return .green }
-    if hole.scoreToPar == 0 { return .blue }
-    if hole.scoreToPar == 1 { return .yellow }
-    return .orange
-  }
-  
-  private var scoreForegroundColor: Color {
-    if hole.scoreToPar <= 0 { return .white }
-    return .black
-  }
-  
-  private func scoreToParColor(_ diff: Int) -> Color {
-    if diff <= 0 { return .green }
-    if diff <= 1 { return .primary }
-    return .orange
-  }
-}
-
-struct GIRBadge: View {
-  var body: some View {
-    Text("GIR")
-      .font(.caption2)
-      .fontWeight(.bold)
-      .padding(.horizontal, 6)
-      .padding(.vertical, 2)
-      .background(Color.green.opacity(0.2))
-      .foregroundColor(.green)
-      .cornerRadius(4)
-  }
-}
-
-struct FairwayBadge: View {
-  var body: some View {
-    Image(systemName: "arrow.up")
-      .font(.caption2)
-      .fontWeight(.bold)
-      .padding(4)
-      .background(Color.blue.opacity(0.2))
-      .foregroundColor(.blue)
-      .clipShape(Circle())
-  }
-}
-
-struct ScrambleBadge: View {
-  var body: some View {
-    Text("UP")
-      .font(.caption2)
-      .fontWeight(.bold)
-      .padding(.horizontal, 6)
-      .padding(.vertical, 2)
-      .background(Color.orange.opacity(0.2))
-      .foregroundColor(.orange)
-      .cornerRadius(4)
   }
 }
 
