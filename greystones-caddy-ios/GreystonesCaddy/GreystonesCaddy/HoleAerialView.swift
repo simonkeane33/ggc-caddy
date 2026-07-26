@@ -222,7 +222,6 @@ struct HoleAerialView: View {
           }
         }
       }
-      #if DEBUG
       .overlay(alignment: .bottomTrailing) {
         if !setGreenMode {
           Button("Debug") {
@@ -233,7 +232,6 @@ struct HoleAerialView: View {
           .tint(.orange)
         }
       }
-      #endif
       .onTapGesture { point in
         guard let coord = proxy.convert(point, from: .local) else { return }
 
@@ -409,11 +407,11 @@ private struct LineGuideOverlay: View {
     let showDebug: Bool
     let onCommit: (CLLocationCoordinate2D) -> Void
 
-    /// Touch point in the overlay's local coordinate space; only this property mutates
-    /// during a drag so the rest of the map body does not recompute.
+    /// Live crosshair position during a drag; only this property mutates so the
+    /// parent Map body does not recompute.
     @State private var dragPoint: CGPoint? = nil
-    /// Offset between the initial touch and the crosshair center, preserved throughout the drag.
-    @State private var dragOffset: CGSize? = nil
+    /// Crosshair position at the start of the drag, used to compute smooth translation.
+    @State private var dragStartPoint: CGPoint? = nil
 
     var body: some View {
         GeometryReader { geo in
@@ -422,7 +420,6 @@ private struct LineGuideOverlay: View {
             let greenPoint = proxy.convert(green, to: .local) ?? .zero
             let crosshairPoint = dragPoint ?? targetPoint
             let activeTargetCoord = dragPoint.flatMap { proxy.convert($0, from: .local) } ?? target
-            let overlayOrigin = geo.frame(in: .global).origin
 
             ZStack {
                 // Lines follow either the committed target or the live drag point.
@@ -444,48 +441,38 @@ private struct LineGuideOverlay: View {
                     }
                 }
 
-                #if DEBUG
-                if showDebug {
-                    DebugMarkers(
-                        teePoint: teePoint,
-                        targetPoint: targetPoint,
-                        greenPoint: greenPoint,
-                        crosshairPoint: crosshairPoint,
-                        dragPoint: dragPoint
-                    )
-                }
-                #endif
+                DebugMarkers(
+                    teePoint: teePoint,
+                    targetPoint: targetPoint,
+                    greenPoint: greenPoint,
+                    crosshairPoint: crosshairPoint,
+                    dragPoint: dragPoint
+                )
 
                 // Draggable target crosshair rendered in screen space.
                 TargetCrosshair(isZoomed: isZoomed)
                     .position(crosshairPoint)
-                    .gesture(
+                    .highPriorityGesture(
                         DragGesture(coordinateSpace: .global)
                             .onChanged { value in
-                                let touchInOverlay = CGPoint(
-                                    x: value.location.x - overlayOrigin.x,
-                                    y: value.location.y - overlayOrigin.y
-                                )
-                                if dragOffset == nil {
-                                    dragOffset = CGSize(
-                                        width: touchInOverlay.x - crosshairPoint.x,
-                                        height: touchInOverlay.y - crosshairPoint.y
-                                    )
+                                if dragStartPoint == nil {
+                                    dragStartPoint = crosshairPoint
                                 }
-                                guard let offset = dragOffset else { return }
+                                guard let start = dragStartPoint else { return }
                                 dragPoint = CGPoint(
-                                    x: touchInOverlay.x - offset.width,
-                                    y: touchInOverlay.y - offset.height
+                                    x: start.x + value.translation.width,
+                                    y: start.y + value.translation.height
                                 )
                             }
                             .onEnded { value in
-                                dragOffset = nil
-                                let touchInOverlay = CGPoint(
-                                    x: value.location.x - overlayOrigin.x,
-                                    y: value.location.y - overlayOrigin.y
+                                guard let start = dragStartPoint else { return }
+                                let finalPoint = CGPoint(
+                                    x: start.x + value.translation.width,
+                                    y: start.y + value.translation.height
                                 )
                                 dragPoint = nil
-                                if let coord = proxy.convert(touchInOverlay, from: .local) {
+                                dragStartPoint = nil
+                                if let coord = proxy.convert(finalPoint, from: .local) {
                                     onCommit(coord)
                                 }
                             }
@@ -513,7 +500,6 @@ private struct LineGuideOverlay: View {
     }
 }
 
-#if DEBUG
 private struct DebugMarkers: View {
     let teePoint: CGPoint
     let targetPoint: CGPoint
@@ -554,7 +540,6 @@ private struct DebugMarkers: View {
         .position(point)
     }
 }
-#endif
 
 private struct LineShape: Shape {
     let from: CGPoint

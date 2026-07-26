@@ -404,6 +404,7 @@ struct MainGameView: View {
         // Tools Wing
         VStack(spacing: 4) {
             Menu {
+                NavigationLink("Aerial View") { HoleAerialView() }
                 NavigationLink("Settings") { SettingsView() }
                 NavigationLink("Course Intelligence") { CourseIntelligenceView(course: state.course) }
                 if let rid = state.activeRoundId {
