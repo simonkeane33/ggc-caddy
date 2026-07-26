@@ -84,6 +84,7 @@ struct RoundStatsView: View {
       }
       .buttonStyle(.borderedProminent)
       .controlSize(.large)
+      .accessibilityIdentifier("completeRoundButton")
     }
     .padding(.top, 8)
   }
@@ -158,6 +159,9 @@ struct RoundStatsView: View {
 
   private func performComplete() {
     do {
+      // Pre-compute round stats so the cache is ready for history / dashboard.
+      _ = try? GCDB.shared.computeAndStoreRoundStats(roundId: roundId, course: course)
+
       try GCDB.shared.completeRound(roundId: roundId)
       state.activeRoundId = nil
       state.holeNumber = 1

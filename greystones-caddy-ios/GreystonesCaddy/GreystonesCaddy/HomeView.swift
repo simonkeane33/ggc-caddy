@@ -48,6 +48,7 @@ struct HomeView: View {
             if state.activeRoundId != nil {
               secondaryCTA
             }
+            hubLinks
           }
           .padding(.bottom, 56)
         }
@@ -65,6 +66,7 @@ struct HomeView: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
             }
+            .accessibilityIdentifier("settingsButton")
             .padding(.trailing, 16)
             .padding(.top, 8)
           }
@@ -85,6 +87,7 @@ struct HomeView: View {
         ctaButton(label: "Resume round", icon: "play.circle.fill")
       }
       .buttonStyle(.plain)
+      .accessibilityIdentifier("resumeRoundButton")
     } else {
       NavigationLink {
         RoundSetupView()
@@ -92,6 +95,7 @@ struct HomeView: View {
         ctaButton(label: "Start round", icon: "plus.circle.fill")
       }
       .buttonStyle(.plain)
+      .accessibilityIdentifier("startRoundButton")
     }
   }
 
@@ -111,6 +115,7 @@ struct HomeView: View {
         )
     }
     .buttonStyle(.plain)
+    .accessibilityIdentifier("startNewRoundButton")
   }
 
   private func ctaButton(label: String, icon: String) -> some View {
@@ -126,6 +131,48 @@ struct HomeView: View {
     .padding(.vertical, 18)
     .background(Color.accentColor)
     .clipShape(RoundedRectangle(cornerRadius: 14))
+  }
+
+  /// Secondary hub links: round history and stats. The pre-cinematic Home exposed
+  /// these as a toolbar icon and a recent-rounds list; the rebuild dropped both from
+  /// the home surface and buried them in Settings. Restoring them here keeps Home as
+  /// the navigation hub the v1 round-flow docs describe (Home -> Round history).
+  private var hubLinks: some View {
+    HStack(spacing: 16) {
+      NavigationLink {
+        RoundHistoryView()
+      } label: {
+        hubLink(label: "History", icon: "clock.arrow.circlepath")
+      }
+      .buttonStyle(.plain)
+      .accessibilityIdentifier("historyLink")
+
+      NavigationLink {
+        StatsDashboardView()
+      } label: {
+        hubLink(label: "Stats", icon: "chart.bar.fill")
+      }
+      .buttonStyle(.plain)
+      .accessibilityIdentifier("statsLink")
+    }
+    .padding(.top, 4)
+  }
+
+  private func hubLink(label: String, icon: String) -> some View {
+    HStack(spacing: 6) {
+      Image(systemName: icon)
+        .font(.footnote)
+      Text(label)
+        .font(.subheadline)
+        .fontWeight(.medium)
+    }
+    .foregroundStyle(.white.opacity(0.9))
+    .padding(.horizontal, 18)
+    .padding(.vertical, 10)
+    .overlay(
+      Capsule()
+        .strokeBorder(.white.opacity(0.4), lineWidth: 1)
+    )
   }
 }
 

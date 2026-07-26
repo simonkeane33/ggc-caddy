@@ -23,6 +23,7 @@ struct RoundDetailView: View {
               Spacer()
               Text("\(totalScoreFromHoleScores)")
                 .font(.headline)
+                .accessibilityIdentifier("roundDetailTotalScore")
             }
           }
           if totalPuttsFromHoleScores > 0 {
@@ -31,6 +32,7 @@ struct RoundDetailView: View {
               Spacer()
               Text("\(totalPuttsFromHoleScores)")
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("roundDetailTotalPutts")
             }
           }
         }

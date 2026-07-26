@@ -362,6 +362,7 @@ struct MainGameView: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
             }
+            .accessibilityIdentifier("mainScorecardButton")
             Text("Scorecard").font(.system(size: 8, weight: .bold)).foregroundColor(.white)
         }
         
@@ -419,6 +420,7 @@ struct MainGameView: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
             }
+            .accessibilityIdentifier("mainToolsMenu")
             Text("Tools").font(.system(size: 8, weight: .bold)).foregroundColor(.white)
         }
       }

@@ -31,6 +31,10 @@ final class AppState: ObservableObject {
     do {
       self.course = try CourseLoader.loadGreystonesCourse()
 
+      #if DEBUG
+      Self.resetDatabaseIfRequested()
+      #endif
+
       // One-time import of high-accuracy GPS coordinates if needed
       if let csvURL = CourseLoader.bundle.url(forResource: "default", withExtension: "csv"),
          let csvContent = try? String(contentsOf: csvURL) {
@@ -149,4 +153,21 @@ final class AppState: ObservableObject {
   var currentHole: CourseBundle.Hole? {
     course.holes.first(where: { $0.number == holeNumber })
   }
+
+  #if DEBUG
+  private static func resetDatabaseIfRequested() {
+    guard ProcessInfo.processInfo.arguments.contains("-UITestResetDatabase") else { return }
+    let fm = FileManager.default
+    guard let appSupport = try? fm.url(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: false
+    ).appendingPathComponent("GreystonesCaddy", isDirectory: true) else { return }
+
+    for name in ["gc.sqlite", "gc.sqlite-wal", "gc.sqlite-shm"] {
+      try? fm.removeItem(at: appSupport.appendingPathComponent(name))
+    }
+  }
+  #endif
 }

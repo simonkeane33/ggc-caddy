@@ -46,6 +46,7 @@ struct RoundHistoryView: View {
       Text(stateLabel(r.completionState))
         .font(.footnote)
         .foregroundStyle(stateColor(r.completionState))
+        .accessibilityIdentifier("roundState_\(r.id)")
     }
   }
 

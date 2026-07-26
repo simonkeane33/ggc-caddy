@@ -100,6 +100,7 @@ struct RoundSetupView: View {
           Text("Start Round")
             .frame(maxWidth: .infinity, alignment: .center)
         }
+        .accessibilityIdentifier("roundSetupStartButton")
       }
     }
     .navigationTitle("New Round")

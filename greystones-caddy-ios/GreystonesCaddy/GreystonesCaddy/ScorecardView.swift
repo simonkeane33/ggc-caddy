@@ -95,11 +95,15 @@ struct ScorecardView: View {
       HStack(spacing: 10) {
         compactStepper(
           value: gross == 0 ? "—" : "\(gross)",
+          minusIdentifier: "hole\(h.number)StrokesMinus",
+          plusIdentifier: "hole\(h.number)StrokesPlus",
           decrement: { setScore(hole: h.number, gross: max(0, gross - 1), putts: putts) },
           increment: { setScore(hole: h.number, gross: gross + 1, putts: putts) }
         )
         compactStepper(
           value: putts == 0 && gross == 0 ? "—" : "\(putts)",
+          minusIdentifier: "hole\(h.number)PuttsMinus",
+          plusIdentifier: "hole\(h.number)PuttsPlus",
           decrement: { setScore(hole: h.number, gross: gross, putts: max(0, putts - 1)) },
           increment: { setScore(hole: h.number, gross: gross, putts: putts + 1) }
         )
@@ -121,22 +125,32 @@ struct ScorecardView: View {
     }
   }
 
-  private func compactStepper(value: String, decrement: @escaping () -> Void, increment: @escaping () -> Void) -> some View {
+  private func compactStepper(
+    value: String,
+    minusIdentifier: String,
+    plusIdentifier: String,
+    decrement: @escaping () -> Void,
+    increment: @escaping () -> Void
+  ) -> some View {
     HStack(spacing: 4) {
       Button(action: decrement) {
         Image(systemName: "minus")
           .font(.caption)
           .frame(width: 20, height: 20)
       }
+      .accessibilityIdentifier(minusIdentifier)
+
       Text(value)
         .font(.headline)
         .monospacedDigit()
         .frame(width: 20, alignment: .center)
+
       Button(action: increment) {
         Image(systemName: "plus")
           .font(.caption)
           .frame(width: 20, height: 20)
       }
+      .accessibilityIdentifier(plusIdentifier)
     }
     .buttonStyle(.plain)
     .foregroundStyle(.secondary)
@@ -154,6 +168,7 @@ struct ScorecardView: View {
         Spacer()
         Text(totalStrokes == 0 ? "—" : "\(totalStrokes)")
           .font(.headline)
+          .accessibilityIdentifier("scorecardTotalStrokes")
       }
 
       HStack {
@@ -161,6 +176,7 @@ struct ScorecardView: View {
         Spacer()
         Text(totalPutts == 0 ? "—" : "\(totalPutts)")
           .font(.headline)
+          .accessibilityIdentifier("scorecardTotalPutts")
       }
 
       HStack {
@@ -173,6 +189,7 @@ struct ScorecardView: View {
           let toPar = totalStrokes - parTotal
           Text(toPar == 0 ? "E" : (toPar > 0 ? "+\(toPar)" : "\(toPar)"))
             .font(.headline)
+            .accessibilityIdentifier("scorecardTotalToPar")
         }
       }
     }

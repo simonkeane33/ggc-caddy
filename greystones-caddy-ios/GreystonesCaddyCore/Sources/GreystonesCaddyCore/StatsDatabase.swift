@@ -93,15 +93,18 @@ public extension GCDB {
   ) throws -> RoundStatsSummary {
     // Get all holes for this round from hole_scores
     let holeNumbers = try fetchHoleNumbersWithScores(roundId: roundId)
-    
+
+    // Resolve the tee used for this round so par/SI are correct.
+    let tee = (try? GCDB.shared.fetchRound(roundId: roundId))?.tee ?? .blue
+
     var holeStats: [HoleStats] = []
     for holeNum in holeNumbers {
       guard let hole = course.holes.first(where: { $0.number == holeNum }) else { continue }
-      let par = hole.par[.blue] // TODO: Use actual tee from round
+      let par = hole.par[tee]
       let stats = try computeAndStoreHoleStats(roundId: roundId, holeNumber: holeNum, par: par)
       holeStats.append(stats)
     }
-    
+
     let summary = StatsCalculator.calculateRoundSummary(roundId: roundId, holeStats: holeStats)
     try storeRoundStatsCache(summary)
     return summary
