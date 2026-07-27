@@ -104,8 +104,8 @@ struct MainGameView: View {
                 // whichever screen edge it's nearest, so dragging the target
                 // toward either edge doesn't push them off-screen.
                 VStack(spacing: 80) {
-                  distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white)
-                  distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black)
+                  distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white, identifier: "mainToGreenDistance")
+                  distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black, identifier: "mainCurrentShotDistance")
                 }
                 .offset(x: isRightOfViewport ? -100 : 100, y: 0)
               }
@@ -313,7 +313,7 @@ struct MainGameView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
   }
   
-  private func distanceTag(meters: Double, label: String, color: Color) -> some View {
+  private func distanceTag(meters: Double, label: String, color: Color, identifier: String? = nil) -> some View {
       Button {
           selectedDistance = (meters: meters, label: label)
       } label: {
@@ -324,6 +324,7 @@ struct MainGameView: View {
                   .padding(.vertical, 8)
                   .background(Color(red: 0.11, green: 0.11, blue: 0.12))
                   .foregroundColor(.white)
+                  .accessibilityIdentifier(identifier ?? "")
               
               HStack(spacing: 4) {
                   VStack(alignment: .leading, spacing: 0) {
@@ -420,7 +421,6 @@ struct MainGameView: View {
         // Tools Wing
         VStack(spacing: 4) {
             Menu {
-                NavigationLink("Aerial View") { HoleAerialView() }
                 NavigationLink("Settings") { SettingsView() }
                 NavigationLink("Course Intelligence") { CourseIntelligenceView(course: state.course) }
                 if let rid = state.activeRoundId {

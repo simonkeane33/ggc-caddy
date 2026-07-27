@@ -545,10 +545,14 @@ final class GreystonesCaddyUITests: XCTestCase {
     }
 
     @MainActor
-    func testAerialViewTargetDraggable() throws {
+    func testMainGameTargetDraggable() throws {
         let app = launchApp(resetDatabase: true)
 
-        // Start a round.
+        // Start a round. MainGameView is the screen shown immediately after —
+        // no navigation needed to reach the target crosshair; the standalone
+        // "Aerial View" screen this test used to detour through via the tools
+        // menu was a redundant dev testbed for the same drag/zoom/ring system
+        // now built directly into MainGameView, and has been removed.
         XCTAssertTrue(app.buttons["startRoundButton"].waitForExistence(timeout: 5))
         app.buttons["startRoundButton"].tap()
         XCTAssertTrue(app.navigationBars["New Round"].waitForExistence(timeout: 5))
@@ -556,39 +560,30 @@ final class GreystonesCaddyUITests: XCTestCase {
         app.buttons["roundSetupStartButton"].tap()
         XCTAssertTrue(app.buttons["mainScorecardButton"].waitForExistence(timeout: 5))
 
-        // Open Aerial View from the tools menu.
-        XCTAssertTrue(app.buttons["mainToolsMenu"].waitForExistence(timeout: 5))
-        app.buttons["mainToolsMenu"].tap()
-        XCTAssertTrue(app.buttons["Aerial View"].waitForExistence(timeout: 5))
-        app.buttons["Aerial View"].tap()
-
         // Trigger the location-permission interruption monitor if the system
-        // alert is present. Tapping the navigation title is harmless once the
-        // alert is dismissed.
+        // alert is present. Tapping a harmless spot is a no-op once dismissed.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
 
-        // Wait for the hole view, crosshair, and distance read-out to render.
-        XCTAssertTrue(app.navigationBars["Hole view"].waitForExistence(timeout: 5))
-        let crosshair = app.otherElements["aerialTargetCrosshair"]
+        let crosshair = app.otherElements["mainTargetCrosshair"]
         XCTAssertTrue(crosshair.waitForExistence(timeout: 5), "Target crosshair should appear")
         XCTAssertTrue(crosshair.isHittable, "Target crosshair should be on-screen and hittable")
 
-        let currentShotLabel = app.staticTexts["currentShotDistance"]
+        let currentShotLabel = app.staticTexts["mainCurrentShotDistance"]
         XCTAssertTrue(currentShotLabel.waitForExistence(timeout: 5), "Current-shot distance label should appear")
         let beforeValue = currentShotLabel.label
         XCTAssertFalse(beforeValue.isEmpty, "Current-shot distance should be loaded")
 
         let beforeAttachment = XCTAttachment(screenshot: app.screenshot())
-        beforeAttachment.name = "Aerial View Before Drag"
+        beforeAttachment.name = "Main Game Before Drag"
         beforeAttachment.lifetime = .keepAlways
         add(beforeAttachment)
 
-        // The tee marker anchors the map. If the map pans while the target is
-        // dragged, this moves — which is the failure the old interaction-mode
-        // gating existed to prevent.
-        let teeMarker = app.descendants(matching: .any).matching(identifier: "Tee").firstMatch
-        XCTAssertTrue(teeMarker.waitForExistence(timeout: 5), "Tee marker should be on screen")
-        let teeBefore = teeMarker.frame
+        // The green marker anchors the map. If the map pans while the target is
+        // dragged, this moves — which is the failure the catch-area/gesture
+        // design is meant to prevent.
+        let greenMarker = app.descendants(matching: .any).matching(identifier: "Green").firstMatch
+        XCTAssertTrue(greenMarker.waitForExistence(timeout: 5), "Green marker should be on screen")
+        let greenBefore = greenMarker.frame
 
         // Drag the crosshair upward to move the target toward the tee.
         let beforeFrame = crosshair.frame
@@ -602,7 +597,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         let afterValue = currentShotLabel.label
 
         let afterAttachment = XCTAttachment(screenshot: app.screenshot())
-        afterAttachment.name = "Aerial View After Drag"
+        afterAttachment.name = "Main Game After Drag"
         afterAttachment.lifetime = .keepAlways
         add(afterAttachment)
 
@@ -621,8 +616,8 @@ final class GreystonesCaddyUITests: XCTestCase {
                        "Crosshair should land vertically on the release point. Landed \(afterCenter), released \(dragEndPoint)")
 
         // The drag must move the target, not the map.
-        let teeAfter = teeMarker.frame
-        XCTAssertEqual(teeAfter.midX, teeBefore.midX, accuracy: 2, "Map panned horizontally during the target drag")
-        XCTAssertEqual(teeAfter.midY, teeBefore.midY, accuracy: 2, "Map panned vertically during the target drag")
+        let greenAfter = greenMarker.frame
+        XCTAssertEqual(greenAfter.midX, greenBefore.midX, accuracy: 2, "Map panned horizontally during the target drag")
+        XCTAssertEqual(greenAfter.midY, greenBefore.midY, accuracy: 2, "Map panned vertically during the target drag")
     }
 }
