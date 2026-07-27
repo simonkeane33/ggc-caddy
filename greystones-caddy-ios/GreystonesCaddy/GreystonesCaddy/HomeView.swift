@@ -267,7 +267,7 @@ struct HomeView: View {
           .fill(.black.opacity(0.35))
           .overlay(
             RoundedRectangle(cornerRadius: 14)
-              .strokeBorder(.white.opacity(0.7), lineWidth: 1.5)
+              .strokeBorder(.white.opacity(0.5), lineWidth: 1.5)
           )
       }
     }
