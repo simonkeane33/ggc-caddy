@@ -23,6 +23,10 @@ struct MainGameView: View {
   @State private var framingDistance: Double = 0
   /// Live camera distance, updated continuously as the user pans/pinches.
   @State private var cameraDistance: Double = 0
+  /// Live camera heading — the compass direction pointing up the screen. The
+  /// aerial map rotates (tee→green points up), so the wind arrow must subtract
+  /// this to read correctly against the rotated map.
+  @State private var cameraHeading: Double = 0
   /// True once the user has pinched in noticeably closer than the initial
   /// hole-framing shot. Drives the finer distance rings and the enlarged
   /// crosshair, matching the aerial view's manual zoom toggle but driven by
@@ -68,11 +72,33 @@ struct MainGameView: View {
     return "\(points[Int((normalised / 45).rounded()) % 8]) \(speed)"
   }
 
+  /// Screen-space rotation (degrees, clockwise from up) for a wind-direction
+  /// arrow that points the way the wind is blowing. `windDirectionDegrees` is
+  /// the meteorological "from" direction, so the blow-toward bearing is +180.
+  /// Subtracting the map's live heading keeps the arrow aligned with the
+  /// rotated aerial map. Nil when there's no wind to point (calm / no data).
+  private var windArrowRotation: Double? {
+    guard let weather else { return nil }
+    let speed = Int(weather.windSpeedKph.rounded())
+    guard speed > 0 else { return nil }
+    let toward = weather.windDirectionDegrees + 180
+    let raw = toward - cameraHeading
+    return (raw.truncatingRemainder(dividingBy: 360) + 360)
+      .truncatingRemainder(dividingBy: 360)
+  }
+
   /// Conditions read-out. Deliberately a capsule rather than one of the circular
   /// tool buttons, and not wrapped in a Button, so it doesn't read as tappable.
   private var windStatusChip: some View {
     HStack(spacing: 5) {
       Image(systemName: "wind").font(.system(size: 12, weight: .semibold))
+      // Arrow pointing the way the wind is blowing, rotated to match the map.
+      // No arrow when calm or before the first weather fetch lands.
+      if let rotation = windArrowRotation {
+        Image(systemName: "arrow.up")
+          .font(.system(size: 11, weight: .black))
+          .rotationEffect(.degrees(rotation))
+      }
       Text(windLabel)
         .font(.system(size: 12, weight: .bold))
         .lineLimit(1)
@@ -113,6 +139,7 @@ struct MainGameView: View {
           .onMapCameraChange(frequency: .continuous) { context in
             drag.cameraDidChange()
             cameraDistance = context.camera.distance
+            cameraHeading = context.camera.heading
           }
 
           // The target line and crosshair are drawn in SwiftUI screen space
