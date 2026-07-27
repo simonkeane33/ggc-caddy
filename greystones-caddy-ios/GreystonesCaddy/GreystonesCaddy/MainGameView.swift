@@ -53,6 +53,14 @@ struct MainGameView: View {
   @State private var selectedDistance: (meters: Double, label: String, bearing: Double?)? = nil
   @State private var showAbandonConfirm = false
   @State private var greenCenter: CLLocationCoordinate2D? = nil
+  /// Live conditions for the wind read-out. Nil until the first fetch lands, or
+  /// if it fails — the button shows "—" rather than inventing a figure.
+  @State private var weather: WeatherConditions? = nil
+
+  private var windLabel: String {
+    guard let weather else { return "—" }
+    return "\(Int(weather.windSpeedKph.rounded())) Kmph"
+  }
 
   var body: some View {
     let hole = state.currentHole
@@ -135,8 +143,10 @@ struct MainGameView: View {
       HStack {
         Spacer()
         VStack(spacing: 12) {
-          toolButton(icon: "wind", label: "12 mph")
-          
+          // Live conditions, not the hardcoded "12 mph" this used to show
+          // regardless of the actual weather.
+          toolButton(icon: "wind", label: windLabel)
+
           // Green Intelligence Button
           Menu {
             NavigationLink("Green View") {
@@ -159,7 +169,13 @@ struct MainGameView: View {
           }
 
           toolButton(icon: isTargetZoomActive ? "minus.magnifyingglass" : "plus.magnifyingglass", label: "", action: toggleTargetZoom)
-          toolButton(icon: "doc.text.fill", label: "")
+          // Opens the per-hole note editor. HoleNotesView was already complete
+          // and reads/writes through GCDB — it just had no entry point.
+          NavigationLink {
+            HoleNotesView(holeNumber: state.holeNumber)
+          } label: {
+            toolButtonLabel(icon: "doc.text.fill", label: "")
+          }
           
           Menu {
               NavigationLink("Scorecard") { ScorecardView() }
@@ -188,6 +204,13 @@ struct MainGameView: View {
       refreshStats()
       loadGreenCenter()
       applyHoleFramingIfNeeded()
+    }
+    .task {
+      // WeatherService caches for 5 minutes, so re-entering this screen is cheap.
+      weather = try? await WeatherService.shared.fetchCurrentWeather(
+        lat: GreystonesElevationData.courseCenter.lat,
+        lng: GreystonesElevationData.courseCenter.lng
+      )
     }
     .onReceive(NotificationCenter.default.publisher(for: .greenCenterDidUpdate)) { _ in
       loadGreenCenter()
@@ -455,19 +478,25 @@ struct MainGameView: View {
 
   private func toolButton(icon: String, label: String, action: (() -> Void)? = nil) -> some View {
       Button(action: { action?() }) {
-          VStack(spacing: 4) {
-              Image(systemName: icon).font(.title3)
-              if !label.isEmpty && icon == "wind" {
-                  Text(label).font(.system(size: 8, weight: .bold))
-              }
-          }
-          .frame(width: 48, height: 48)
-          .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
-          .foregroundColor(.white)
-          .clipShape(Circle())
-          .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-          .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+          toolButtonLabel(icon: icon, label: label)
       }
+  }
+
+  /// The circular tool-button visual on its own, so it can back either a
+  /// `Button` or a `NavigationLink`.
+  private func toolButtonLabel(icon: String, label: String) -> some View {
+      VStack(spacing: 4) {
+          Image(systemName: icon).font(.title3)
+          if !label.isEmpty && icon == "wind" {
+              Text(label).font(.system(size: 8, weight: .bold))
+          }
+      }
+      .frame(width: 48, height: 48)
+      .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
+      .foregroundColor(.white)
+      .clipShape(Circle())
+      .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+      .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
   }
 
   // MARK: - Helpers & Data
