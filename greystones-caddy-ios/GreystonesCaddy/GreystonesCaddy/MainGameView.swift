@@ -30,6 +30,11 @@ struct MainGameView: View {
   private var isZoomedIn: Bool {
     framingDistance > 0 && cameraDistance < framingDistance * 0.6
   }
+  /// True while `toggleTargetZoom` has driven the camera in. ORed into the
+  /// rings/crosshair condition below so they appear the instant the button is
+  /// pressed rather than waiting for `cameraDistance` to catch up with the
+  /// in-flight camera animation.
+  @State private var isTargetZoomActive: Bool = false
   
   // Scoring state
   @State private var strokes: Int = 0
@@ -86,7 +91,7 @@ struct MainGameView: View {
               tee: tee,
               green: g,
               committedTarget: targetByHole[state.holeNumber] ?? midPoint(tee, g),
-              isZoomed: isZoomedIn,
+              isZoomed: isZoomedIn || isTargetZoomActive,
               ringYardages: [5, 10, 15, 20],
               crosshairIdentifier: "mainTargetCrosshair",
               onCommit: { coord in
@@ -146,7 +151,7 @@ struct MainGameView: View {
             .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
           }
 
-          toolButton(icon: "plus", label: "")
+          toolButton(icon: isTargetZoomActive ? "minus.magnifyingglass" : "plus.magnifyingglass", label: "", action: toggleTargetZoom)
           toolButton(icon: "doc.text.fill", label: "")
           
           Menu {
@@ -497,12 +502,10 @@ struct MainGameView: View {
   private static let overlaySafeSpanMultiplier: Double = 2.0
   private static let cameraDistanceMultiplier: Double = 3.0
 
-  private func applyHoleFramingIfNeeded() {
-      guard lastFramedHole != state.holeNumber else { return }
-      guard let g = greenCenter, let tee = teeLocation else { return }
-
-      lastFramedHole = state.holeNumber
-
+  /// The tee-green overview shot: computed independently of `lastFramedHole`
+  /// so `toggleTargetZoom` can jump straight back to it without being blocked
+  /// by the "already framed this hole" guard in `applyHoleFramingIfNeeded`.
+  private func framedOverviewCamera(tee: CLLocationCoordinate2D, green g: CLLocationCoordinate2D) -> (position: MapCameraPosition, distance: Double) {
       let lat1 = tee.latitude * .pi / 180
       let lon1 = tee.longitude * .pi / 180
       let lat2 = g.latitude * .pi / 180
@@ -514,25 +517,53 @@ struct MainGameView: View {
 
       let centerLat = (g.latitude + tee.latitude) / 2
       let centerLng = (g.longitude + tee.longitude) / 2
-      let spanLat = abs(g.latitude - tee.latitude) * Self.overlaySafeSpanMultiplier
-      let spanLng = abs(g.longitude - tee.longitude) * Self.overlaySafeSpanMultiplier
       let spanMeters = max(Geo.distanceMetres(lat1: tee.latitude, lng1: tee.longitude, lat2: g.latitude, lng2: g.longitude), 100)
       let distance = spanMeters * Self.cameraDistanceMultiplier
-      framingDistance = distance
-      cameraDistance = distance
 
-      let newCamera = MapCameraPosition.camera(MapCamera(
+      let position = MapCameraPosition.camera(MapCamera(
           centerCoordinate: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng),
           distance: distance,
           heading: heading,
           pitch: 0
       ))
+      return (position, distance)
+  }
+
+  private func applyHoleFramingIfNeeded() {
+      guard lastFramedHole != state.holeNumber else { return }
+      guard let g = greenCenter, let tee = teeLocation else { return }
+
+      lastFramedHole = state.holeNumber
+
+      let framed = framedOverviewCamera(tee: tee, green: g)
+      framingDistance = framed.distance
+      cameraDistance = framed.distance
 
       withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
-          camera = newCamera
+          camera = framed.position
       }
   }
-  
+
+  /// Jumps the camera straight to a tight shot on the current target, or back
+  /// to the tee-green overview, instead of leaving zooming to a pinch gesture.
+  private func toggleTargetZoom() {
+      guard let tee = teeLocation, let g = greenCenter else { return }
+      isTargetZoomActive.toggle()
+      withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
+          if isTargetZoomActive {
+              let activeTarget = targetByHole[state.holeNumber] ?? midPoint(tee, g)
+              camera = .camera(MapCamera(
+                  centerCoordinate: activeTarget,
+                  distance: 40,
+                  heading: camera.camera?.heading ?? 0,
+                  pitch: 0
+              ))
+          } else {
+              camera = framedOverviewCamera(tee: tee, green: g).position
+          }
+      }
+  }
+
   private func refreshStats() {
       guard let rid = state.activeRoundId else { return }
       strokes = (try? GCDB.shared.strokesForHole(roundId: rid, holeNumber: state.holeNumber)) ?? 0

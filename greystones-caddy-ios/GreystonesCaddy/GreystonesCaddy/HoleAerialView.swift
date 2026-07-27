@@ -135,7 +135,7 @@ struct HoleAerialView: View {
       .overlay(alignment: .bottom) {
           if let g = greenCenter, let tee = teeLocation {
               HStack {
-                  Button(action: { isZoomedOnTarget.toggle() }) {
+                  Button(action: toggleTargetZoom) {
                       Image(systemName: isZoomedOnTarget ? "minus.magnifyingglass" : "plus.magnifyingglass")
                           .padding(10)
                           .background(.ultraThinMaterial)
@@ -204,6 +204,26 @@ struct HoleAerialView: View {
     }
   }
 }
+
+  /// Jumps the camera straight to a tight shot on the current target, or back
+  /// to the tee-green overview, instead of leaving zooming to a pinch gesture.
+  private func toggleTargetZoom() {
+    guard let tee = teeLocation, let g = greenCenter else { return }
+    isZoomedOnTarget.toggle()
+    withAnimation(.easeInOut(duration: 0.4)) {
+      if isZoomedOnTarget {
+        let activeTarget = target ?? midPoint(tee, g)
+        camera = .camera(MapCamera(
+          centerCoordinate: activeTarget,
+          distance: 40,
+          heading: camera.camera?.heading ?? 0,
+          pitch: 0
+        ))
+      } else {
+        snapToUser()
+      }
+    }
+  }
 
   private func snapToUser() {
     if let g = greenCenter, let tee = teeLocation {
