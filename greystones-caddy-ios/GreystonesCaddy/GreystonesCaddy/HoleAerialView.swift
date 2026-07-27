@@ -36,7 +36,11 @@ struct HoleAerialView: View {
     ZStack {
       MapReader { proxy in
         ZStack {
-          Map(position: $camera) {
+          // `bounds:` is a `Map` initializer parameter, not a view modifier.
+          // MapKit's default minimum camera distance is much further out than
+          // it needs to be for a short-game/putting view — this lets a pinch
+          // zoom in close enough to place the target with real precision.
+          Map(position: $camera, bounds: MapCameraBounds(minimumDistance: 15, maximumDistance: nil)) {
           UserAnnotation()
 
           if let g = greenCenter {
@@ -105,7 +109,7 @@ struct HoleAerialView: View {
             green: g,
             committedTarget: target ?? midPoint(tee, g),
             isZoomed: isZoomedOnTarget,
-            ringYardages: [20, 40, 60],
+            ringYardages: [5, 10, 15, 20],
             crosshairIdentifier: "aerialTargetCrosshair",
             onCommit: { coord in
               target = coord

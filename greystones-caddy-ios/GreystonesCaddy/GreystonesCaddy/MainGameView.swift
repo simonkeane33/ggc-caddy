@@ -17,6 +17,19 @@ struct MainGameView: View {
   @State private var targetByHole: [Int: CLLocationCoordinate2D] = [:]
   /// Last hole we applied framing for; avoids re-framing when returning from Scorecard etc.
   @State private var lastFramedHole: Int? = nil
+  /// The camera distance (metres of altitude) `applyHoleFramingIfNeeded` set for
+  /// the current hole. Compared against the live camera distance to tell
+  /// whether the user has pinched in past the initial framing.
+  @State private var framingDistance: Double = 0
+  /// Live camera distance, updated continuously as the user pans/pinches.
+  @State private var cameraDistance: Double = 0
+  /// True once the user has pinched in noticeably closer than the initial
+  /// hole-framing shot. Drives the finer distance rings and the enlarged
+  /// crosshair, matching the aerial view's manual zoom toggle but driven by
+  /// the actual map zoom instead.
+  private var isZoomedIn: Bool {
+    framingDistance > 0 && cameraDistance < framingDistance * 0.6
+  }
   
   // Scoring state
   @State private var strokes: Int = 0
@@ -40,7 +53,11 @@ struct MainGameView: View {
       // 1. PRIMARY MAP LAYER
       MapReader { proxy in
         ZStack {
-          Map(position: $camera) {
+          // `bounds:` is a `Map` initializer parameter, not a view modifier.
+          // MapKit's default minimum camera distance is much further out than
+          // it needs to be for a short-game/putting view — this lets a pinch
+          // zoom in close enough to place the target with real precision.
+          Map(position: $camera, bounds: MapCameraBounds(minimumDistance: 15, maximumDistance: nil)) {
             UserAnnotation()
 
             // Green points
@@ -51,8 +68,9 @@ struct MainGameView: View {
             }
           }
           .mapStyle(.imagery)
-          .onMapCameraChange(frequency: .continuous) { _ in
+          .onMapCameraChange(frequency: .continuous) { context in
             drag.cameraDidChange()
+            cameraDistance = context.camera.distance
           }
 
           // The target line and crosshair are drawn in SwiftUI screen space
@@ -68,23 +86,23 @@ struct MainGameView: View {
               tee: tee,
               green: g,
               committedTarget: targetByHole[state.holeNumber] ?? midPoint(tee, g),
-              isZoomed: false,
-              ringYardages: [],
+              isZoomed: isZoomedIn,
+              ringYardages: [5, 10, 15, 20],
               crosshairIdentifier: "mainTargetCrosshair",
               onCommit: { coord in
                 var updated = targetByHole
                 updated[state.holeNumber] = coord
                 targetByHole = updated
               },
-              accessory: { activeTarget in
-                // Keep the pills on the far side of the green so they never sit
-                // on top of the line.
-                let isRightOfGreen = activeTarget.longitude > g.longitude
+              accessory: { activeTarget, isRightOfViewport in
+                // Anchor the pills on the side of the crosshair away from
+                // whichever screen edge it's nearest, so dragging the target
+                // toward either edge doesn't push them off-screen.
                 VStack(spacing: 80) {
                   distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white)
                   distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black)
                 }
-                .offset(x: isRightOfGreen ? -100 : 100, y: 0)
+                .offset(x: isRightOfViewport ? -100 : 100, y: 0)
               }
             )
           }
@@ -500,6 +518,8 @@ struct MainGameView: View {
       let spanLng = abs(g.longitude - tee.longitude) * Self.overlaySafeSpanMultiplier
       let spanMeters = max(Geo.distanceMetres(lat1: tee.latitude, lng1: tee.longitude, lat2: g.latitude, lng2: g.longitude), 100)
       let distance = spanMeters * Self.cameraDistanceMultiplier
+      framingDistance = distance
+      cameraDistance = distance
 
       let newCamera = MapCameraPosition.camera(MapCamera(
           centerCoordinate: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLng),

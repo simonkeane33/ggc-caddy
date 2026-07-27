@@ -69,12 +69,28 @@ struct TargetGuideOverlay<Accessory: View>: View {
     let crosshairIdentifier: String
     let onCommit: (CLLocationCoordinate2D) -> Void
     /// Extra content centred on the crosshair — distance pills and the like.
-    /// Drawn above the catch area so its controls stay tappable.
-    @ViewBuilder let accessory: (CLLocationCoordinate2D) -> Accessory
+    /// Drawn above the catch area so its controls stay tappable. The second
+    /// parameter is `true` when the crosshair is in the right half of the
+    /// overlay's *screen* space, so callers can flip a side-anchored layout
+    /// away from whichever edge the target is closest to.
+    @ViewBuilder let accessory: (CLLocationCoordinate2D, Bool) -> Accessory
 
-    /// Touch catch area around the crosshair. Big enough to grab comfortably,
-    /// small enough that the rest of the map stays fully interactive.
-    private let catchSize: CGFloat = 160
+    /// Touch catch area around the crosshair.
+    ///
+    /// This sits as a sibling to the `Map`, not inside it, so it hit-tests
+    /// independently: whichever touch of a two-finger pinch happens to land
+    /// inside this box gets claimed by *this* view the instant it touches down,
+    /// and UIKit never reconsiders that assignment — so the Map's own pinch
+    /// recognizer, which needs both touches on itself, is starved of one and
+    /// can't recognize at all. There is no delegate trick that fixes this after
+    /// the fact once a touch has been claimed. The only real lever is keeping
+    /// the box small enough that a pinch's start points rarely land inside it in
+    /// the first place, while staying generous enough that grabbing the target
+    /// on a real device stays reliable — this is a partial mitigation, not a
+    /// fix, and trades away some pinch-safety for that reliability on purpose.
+    private var catchSize: CGFloat {
+        (isZoomed || drag.isDragging) ? 130 : 110
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -99,12 +115,25 @@ struct TargetGuideOverlay<Accessory: View>: View {
                     .allowsHitTesting(false)
 
                 if isZoomed {
+                    // Centred on the target: these are "how far is the green
+                    // from here" contours — if the green marker sits on the
+                    // "60y" ring, the target is 60 yards from the green. That
+                    // only holds if `ringDiameter` measures true screen-space
+                    // radius rather than assuming east = screen-horizontal; see
+                    // its doc comment for why that assumption was wrong.
                     ForEach(ringYardages, id: \.self) { yards in
                         let diameter = ringDiameter(yards: yards, centre: activeTarget)
                         Circle()
                             .stroke(.white.opacity(0.3), lineWidth: 1)
                             .frame(width: diameter, height: diameter)
                             .position(crosshairPoint)
+                            .allowsHitTesting(false)
+
+                        // Labelled where the ring crosses the crosshair-to-green
+                        // line, so the label sits on the same guide line the
+                        // rings are meant to be read against.
+                        RingLabel(yards: yards)
+                            .position(pointOnRay(from: crosshairPoint, towards: greenPoint, distance: diameter / 2))
                             .allowsHitTesting(false)
                     }
                 }
@@ -123,13 +152,24 @@ struct TargetGuideOverlay<Accessory: View>: View {
                     .accessibilityIdentifier(crosshairIdentifier)
                     .allowsHitTesting(false)
 
-                accessory(activeTarget)
+                accessory(activeTarget, crosshairPoint.x > geo.size.width / 2)
                     .position(crosshairPoint)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
+    /// Instant, ungated single-finger drag.
+    ///
+    /// This used to require a brief hold before arming, on the theory that a
+    /// pinch's first touch moves away fast enough to fail a `LongPressGesture`
+    /// and so never register as a drag. It backfired: a real, fast, intentional
+    /// one-finger drag also moves within that same window, so the hold-gate
+    /// failed real drags essentially as often as it filtered pinch touches —
+    /// "the target won't drag" was that regression. Instant response is the
+    /// load-bearing requirement here (see `TargetDragState`'s doc comment on why
+    /// latency was the original bug); `catchSize` staying small is the only
+    /// pinch mitigation left, and it's a partial one — see its doc comment.
     private func dragGesture(originInGlobal: CGPoint) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
@@ -151,11 +191,35 @@ struct TargetGuideOverlay<Accessory: View>: View {
             }
     }
 
+    /// The point at `distance` from `start`, along the ray toward `end`. Used to
+    /// park a ring's label where the guide line actually crosses that ring.
+    private func pointOnRay(from start: CGPoint, towards end: CGPoint, distance: CGFloat) -> CGPoint {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let length = (dx * dx + dy * dy).squareRoot()
+        guard length > 0 else { return start }
+        return CGPoint(x: start.x + dx / length * distance, y: start.y + dy / length * distance)
+    }
+
+    /// Screen-space diameter, in points, that `yards` actually spans at the
+    /// current zoom — measured as the true distance between the two projected
+    /// points, not just their horizontal separation.
+    ///
+    /// The old version took `abs(edgePoint.x - centrePoint.x)`, which silently
+    /// assumes moving east in the real world shows up as purely horizontal
+    /// movement on screen. That's only true on a north-up map. This map's
+    /// camera heading is set to the tee→green bearing (`applyHoleFramingIfNeeded`),
+    /// so it's essentially never north-up — on most holes a chunk of that
+    /// eastward offset showed up as vertical movement instead and got silently
+    /// dropped, undersizing every ring by an amount that depended on the hole's
+    /// compass direction. That's why the rings didn't match the "To Green" pill.
     private func ringDiameter(yards: Double, centre: CLLocationCoordinate2D) -> CGFloat {
         guard let edgeCoord = coordinate(eastOf: centre, yards: yards),
               let edgePoint = proxy.convert(edgeCoord, to: .local),
               let centrePoint = proxy.convert(centre, to: .local) else { return 0 }
-        return abs(edgePoint.x - centrePoint.x) * 2
+        let dx = edgePoint.x - centrePoint.x
+        let dy = edgePoint.y - centrePoint.y
+        return (dx * dx + dy * dy).squareRoot() * 2
     }
 
     /// A coordinate due east of `centre`, used to measure how many points a
@@ -189,8 +253,24 @@ extension TargetGuideOverlay where Accessory == EmptyView {
             ringYardages: ringYardages,
             crosshairIdentifier: crosshairIdentifier,
             onCommit: onCommit,
-            accessory: { _ in EmptyView() }
+            accessory: { _, _ in EmptyView() }
         )
+    }
+}
+
+/// Small yardage readout pinned to a distance ring, so a zoomed-in crosshair
+/// reads as an actual measurement, not just an unlabelled guide circle.
+private struct RingLabel: View {
+    let yards: Double
+
+    var body: some View {
+        Text("\(Int(yards))y")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.black.opacity(0.6))
+            .clipShape(Capsule())
     }
 }
 
