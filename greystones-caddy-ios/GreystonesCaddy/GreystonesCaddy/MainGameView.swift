@@ -192,16 +192,7 @@ struct MainGameView: View {
               Green3DView(holeNumber: state.holeNumber, greenCenter: greenCenter)
             }
           } label: {
-            VStack(spacing: 4) {
-              Image(systemName: "circle.circle.fill").font(.title3)
-              Text("Green").font(.system(size: 8, weight: .bold))
-            }
-            .frame(width: 48, height: 48)
-            .background(Color.green.opacity(0.95))
-            .foregroundColor(.white)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+            toolButtonLabel(icon: "circle.circle.fill", label: "Green", background: Color.green.opacity(0.95))
           }
 
           toolButton(icon: isTargetZoomActive ? "minus.magnifyingglass" : "plus.magnifyingglass", label: "", action: toggleTargetZoom)
@@ -213,18 +204,37 @@ struct MainGameView: View {
             toolButtonLabel(icon: "doc.text.fill", label: "")
           }
           
-          Menu {
-              NavigationLink("Scorecard") { ScorecardView() }
-              if state.activeRoundId != nil {
-                NavigationLink("Complete round") {
-                  RoundStatsView(roundId: state.activeRoundId!, course: state.course)
-                }
-              }
-              NavigationLink("Hole Insights") { HoleInsightsView(holeNumber: state.holeNumber, course: state.course) }
-              NavigationLink("Settings") { SettingsView() }
+          // Scorecard — moved up from the bottom wing so every action button
+          // lives in the right-side group and the hole selector can span the
+          // full width.
+          NavigationLink {
+            ScorecardView()
           } label: {
-              toolButton(icon: "ellipsis.circle", label: "Tools")
+            toolButtonLabel(icon: "list.bullet.rectangle", label: "Scorecard")
           }
+          .accessibilityIdentifier("mainScorecardButton")
+
+          // Tools — a single merged menu. This replaces both the old ellipsis
+          // menu that lived here (Scorecard, Complete round, Hole Insights,
+          // Settings) and the wrench wing that sat at the bottom (Settings,
+          // Course Intelligence, Complete round, Abandon round). Scorecard has
+          // its own button above, so it isn't duplicated inside.
+          Menu {
+            if let rid = state.activeRoundId {
+              NavigationLink("Complete round") {
+                RoundStatsView(roundId: rid, course: state.course)
+              }
+            }
+            NavigationLink("Hole Insights") { HoleInsightsView(holeNumber: state.holeNumber, course: state.course) }
+            NavigationLink("Course Intelligence") { CourseIntelligenceView(course: state.course) }
+            if state.activeRoundId != nil {
+              Button("Abandon round", role: .destructive) { showAbandonConfirm = true }
+            }
+            NavigationLink("Settings") { SettingsView() }
+          } label: {
+            toolButtonLabel(icon: "wrench.and.screwdriver.fill", label: "Tools")
+          }
+          .accessibilityIdentifier("mainToolsMenu")
           }
         }
         .padding(.trailing, 12)
@@ -445,79 +455,41 @@ struct MainGameView: View {
           .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
       }
       
-      HStack(alignment: .center, spacing: 12) {
-        // Scorecard Wing
-        VStack(spacing: 4) {
-            NavigationLink(destination: ScorecardView()) {
-                Image(systemName: "list.bullet.rectangle").font(.title3)
-                    .frame(width: 48, height: 48)
-                    .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
-                    .foregroundColor(.white)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-            }
-            .accessibilityIdentifier("mainScorecardButton")
-            Text("Scorecard").font(.system(size: 8, weight: .bold)).foregroundColor(.white)
-        }
-        
-        // Primary Hole Selector
-        HStack {
-            Button(action: { 
-                if state.holeNumber > 1 { state.holeNumber -= 1 }
-            }) {
-                Image(systemName: "chevron.left")
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14) // Increased vertical padding
-            }
-            
-            Spacer()
-            
-            VStack(spacing: 2) {
-                Text("Hole \(state.holeNumber)").bold()
-                Text("Enter Score").font(.caption)
-            }
-            .padding(.vertical, 6) // Internal padding for content
-            .onTapGesture { showHolePicker = true }
-            
-            Spacer()
-            
-            Button(action: { 
-                if state.holeNumber < 18 { state.holeNumber += 1 }
-            }) {
-                Image(systemName: "chevron.right")
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14) // Increased vertical padding
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.blue)
-        .foregroundColor(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 15))
-        .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-        
-        // Tools Wing
-        VStack(spacing: 4) {
-            Menu {
-                NavigationLink("Settings") { SettingsView() }
-                NavigationLink("Course Intelligence") { CourseIntelligenceView(course: state.course) }
-                if let rid = state.activeRoundId {
-                  NavigationLink("Complete round") {
-                    RoundStatsView(roundId: rid, course: state.course)
-                  }
-                  Button("Abandon round", role: .destructive) { showAbandonConfirm = true }
-                }
-            } label: {
-                Image(systemName: "wrench.and.screwdriver.fill").font(.title3)
-                    .frame(width: 48, height: 48)
-                    .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
-                    .foregroundColor(.white)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-            }
-            .accessibilityIdentifier("mainToolsMenu")
-            Text("Tools").font(.system(size: 8, weight: .bold)).foregroundColor(.white)
-        }
+      // Primary Hole Selector — spans the full width now that the Scorecard
+      // and Tools wings have moved into the right-side button group.
+      HStack {
+          Button(action: {
+              if state.holeNumber > 1 { state.holeNumber -= 1 }
+          }) {
+              Image(systemName: "chevron.left")
+                  .padding(.horizontal, 16)
+                  .padding(.vertical, 14) // Increased vertical padding
+          }
+
+          Spacer()
+
+          VStack(spacing: 2) {
+              Text("Hole \(state.holeNumber)").bold()
+              Text("Enter Score").font(.caption)
+          }
+          .padding(.vertical, 6) // Internal padding for content
+          .onTapGesture { showHolePicker = true }
+
+          Spacer()
+
+          Button(action: {
+              if state.holeNumber < 18 { state.holeNumber += 1 }
+          }) {
+              Image(systemName: "chevron.right")
+                  .padding(.horizontal, 16)
+                  .padding(.vertical, 14) // Increased vertical padding
+          }
       }
+      .frame(maxWidth: .infinity)
+      .background(Color.blue)
+      .foregroundColor(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 15))
+      .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
       .padding(.horizontal)
       .padding(.bottom, 8) // Anchor to bottom edge
     }
@@ -529,20 +501,26 @@ struct MainGameView: View {
       }
   }
 
-  /// The circular tool-button visual on its own, so it can back either a
-  /// `Button` or a `NavigationLink`.
-  private func toolButtonLabel(icon: String, label: String) -> some View {
+  /// The tool-button visual on its own, so it can back either a `Button` or a
+  /// `NavigationLink`. Rectangular with a small corner radius rather than
+  /// circular, so a caption (e.g. "Scorecard") fits without being clipped by
+  /// the curve.
+  private func toolButtonLabel(
+    icon: String,
+    label: String,
+    background: Color = Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95)
+  ) -> some View {
       VStack(spacing: 4) {
           Image(systemName: icon).font(.title3)
-          if !label.isEmpty && icon == "wind" {
+          if !label.isEmpty {
               Text(label).font(.system(size: 8, weight: .bold))
           }
       }
-      .frame(width: 48, height: 48)
-      .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
+      .frame(width: 56, height: 48)
+      .background(background)
       .foregroundColor(.white)
-      .clipShape(Circle())
-      .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
       .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
   }
 
