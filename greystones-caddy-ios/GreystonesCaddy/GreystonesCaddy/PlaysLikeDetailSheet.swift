@@ -167,14 +167,16 @@ struct PlaysLikeDetailSheet: View {
             Spacer()
             
             let yardageDiff = calculateYardageDiff(multiplier: adjustment)
+            // No "Adjust" control here yet. It existed as `Button("Adjust") {}`
+            // — an empty action on every row — which advertised a manual
+            // override the app can't do. Reinstating it needs per-factor
+            // overrides feeding back into DistanceAdjustmentEngine, and for
+            // altitude and lie angle it needs engine support that doesn't exist
+            // at all (both are currently fixed at a 1.0 multiplier).
             Text(yardageDiff == 0 ? "0Yds" : (yardageDiff > 0 ? "+\(yardageDiff)Yds" : "\(yardageDiff)Yds"))
                 .font(.headline)
                 .foregroundColor(.white)
-            
-            Button("Adjust") {}
-                .font(.caption)
-                .foregroundColor(.blue)
-                .padding(.leading, 10)
+                .frame(minWidth: 70, alignment: .trailing)
         }
         .padding()
         .background(Color(white: 0.1))
@@ -190,8 +192,19 @@ struct PlaysLikeDetailSheet: View {
     private func windText() -> String {
         guard let weather else { return "—" }
         let speed = Int(weather.windSpeedKph.rounded())
-        guard speed > 0, let bearing = shotBearing else { return "\(speed) Kmph" }
-        return "\(speed) Kmph \(windRelativeDescription(windDirection: weather.windDirectionDegrees, shotBearing: bearing))"
+        guard speed > 0 else { return "Calm" }
+        let from = compassPoint(weather.windDirectionDegrees)
+        guard let bearing = shotBearing else { return "\(speed) Kmph \(from)" }
+        return "\(speed) Kmph \(from) \(windRelativeDescription(windDirection: weather.windDirectionDegrees, shotBearing: bearing))"
+    }
+
+    /// Eight-point compass label for the direction the wind blows *from*, which
+    /// is the convention both the weather API and golfers use ("into a
+    /// southwesterly").
+    private func compassPoint(_ degrees: Double) -> String {
+        let points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        let normalised = (degrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        return points[Int((normalised / 45).rounded()) % 8]
     }
 
     /// Wind direction from the API is the direction the wind blows *from*, and

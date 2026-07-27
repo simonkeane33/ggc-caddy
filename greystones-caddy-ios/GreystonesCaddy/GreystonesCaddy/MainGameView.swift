@@ -57,9 +57,17 @@ struct MainGameView: View {
   /// if it fails — the button shows "—" rather than inventing a figure.
   @State private var weather: WeatherConditions? = nil
 
+  /// Compact enough for the 48pt tool button: the direction the wind blows
+  /// from, then the speed. Kmph is implied here and spelled out in the
+  /// plays-like sheet, where there's room for it.
   private var windLabel: String {
     guard let weather else { return "—" }
-    return "\(Int(weather.windSpeedKph.rounded())) Kmph"
+    let speed = Int(weather.windSpeedKph.rounded())
+    guard speed > 0 else { return "Calm" }
+    let points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    let normalised = (weather.windDirectionDegrees.truncatingRemainder(dividingBy: 360) + 360)
+      .truncatingRemainder(dividingBy: 360)
+    return "\(points[Int((normalised / 45).rounded()) % 8]) \(speed)"
   }
 
   var body: some View {

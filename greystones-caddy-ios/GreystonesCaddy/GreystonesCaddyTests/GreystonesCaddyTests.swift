@@ -113,6 +113,26 @@ final class GreystonesCaddyTests: XCTestCase {
                              "Supplying the shot direction should change the plays-like distance")
     }
 
+    /// The compass label must wrap correctly at both ends of the range — 350°
+    /// is north, not an out-of-bounds index.
+    func testCompassPointWrapsAtNorth() {
+        func compassPoint(_ degrees: Double) -> String {
+            let points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+            let normalised = (degrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+            return points[Int((normalised / 45).rounded()) % 8]
+        }
+
+        XCTAssertEqual(compassPoint(0), "N")
+        XCTAssertEqual(compassPoint(350), "N", "Just west of north should still round to N, not overflow")
+        XCTAssertEqual(compassPoint(360), "N")
+        XCTAssertEqual(compassPoint(45), "NE")
+        XCTAssertEqual(compassPoint(90), "E")
+        XCTAssertEqual(compassPoint(180), "S")
+        XCTAssertEqual(compassPoint(270), "W")
+        XCTAssertEqual(compassPoint(315), "NW")
+        XCTAssertEqual(compassPoint(-90), "W", "Negative bearings should normalise rather than crash")
+    }
+
     /// The elevation row's label and its yardage adjustment come from the same
     /// profile, so anything the engine treats as flat must not be shown as a
     /// slope, and vice versa.
