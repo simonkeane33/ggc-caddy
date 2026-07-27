@@ -22,7 +22,14 @@ public struct HoleElevationProfile: Sendable {
   public var teeElevation: Double
   public var greenElevation: Double
   public var fairwayPoints: [ElevationPoint]
-  
+
+  public init(holeNumber: Int, teeElevation: Double, greenElevation: Double, fairwayPoints: [ElevationPoint]) {
+    self.holeNumber = holeNumber
+    self.teeElevation = teeElevation
+    self.greenElevation = greenElevation
+    self.fairwayPoints = fairwayPoints
+  }
+
   /// Total elevation change from tee to green (positive = uphill, negative = downhill)
   public var elevationChange: Double {
     greenElevation - teeElevation
@@ -59,7 +66,15 @@ public struct WeatherConditions: Sendable {
   public var windDirectionDegrees: Double // 0 = North, 90 = East, etc.
   public var humidity: Double
   public var pressure: Double
-  
+
+  public init(temperatureC: Double, windSpeedKph: Double, windDirectionDegrees: Double, humidity: Double, pressure: Double) {
+    self.temperatureC = temperatureC
+    self.windSpeedKph = windSpeedKph
+    self.windDirectionDegrees = windDirectionDegrees
+    self.humidity = humidity
+    self.pressure = pressure
+  }
+
   /// Temperature-adjusted distance multiplier
   /// Cold weather = less distance, warm = more distance
   public var temperatureMultiplier: Double {

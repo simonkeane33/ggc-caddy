@@ -6,10 +6,13 @@ struct PlaysLikeDetailSheet: View {
     
     let actualDistance: Double
     let holeNumber: Int
-    let targetLocation: (lat: Double, lng: Double)?
-    
+    /// Compass bearing of the shot, 0 = north. Without it no wind adjustment can
+    /// be calculated — wind only helps or hurts relative to the shot direction.
+    let shotBearing: Double?
+
     @State private var result: PlaysLikeResult?
     @State private var weather: WeatherConditions?
+    @State private var elevationProfile: HoleElevationProfile?
     @State private var isLoading = true
     
     var body: some View {
@@ -29,7 +32,7 @@ struct PlaysLikeDetailSheet: View {
                         VStack(spacing: 1) {
                             adjustmentRow(
                                 label: "Wind",
-                                value: "\(Int(weather?.windSpeedKph ?? 0)) kph",
+                                value: windText(),
                                 adjustment: result.adjustmentFactors.windMultiplier,
                                 icon: "wind"
                             )
@@ -41,7 +44,7 @@ struct PlaysLikeDetailSheet: View {
                             )
                             adjustmentRow(
                                 label: "Temperature",
-                                value: "\(Int(weather?.temperatureC ?? 20))°C",
+                                value: weather.map { "\(Int($0.temperatureC.rounded()))°C" } ?? "—",
                                 adjustment: result.adjustmentFactors.temperatureMultiplier,
                                 icon: "thermometer.medium"
                             )
@@ -91,6 +94,13 @@ struct PlaysLikeDetailSheet: View {
                 }
             }
         }
+        // This screen paints its own black background, but `.secondary` and
+        // friends are semantic colours that resolve against the *ambient*
+        // scheme. In light mode they became dark greys intended for light
+        // backgrounds — dark-grey-on-black, effectively unreadable. Pinning the
+        // scheme makes every semantic colour resolve against the background
+        // actually being drawn.
+        .preferredColorScheme(.dark)
         .task {
             await calculate()
         }
@@ -175,36 +185,62 @@ struct PlaysLikeDetailSheet: View {
         return Int(Distance.metresToYards(diff))
     }
     
+    /// Wind speed plus how it lies relative to this shot. "9 kph" alone doesn't
+    /// tell you whether it helps or hurts — the head/tail/cross part does.
+    private func windText() -> String {
+        guard let weather else { return "—" }
+        let speed = Int(weather.windSpeedKph.rounded())
+        guard speed > 0, let bearing = shotBearing else { return "\(speed) Kmph" }
+        return "\(speed) Kmph \(windRelativeDescription(windDirection: weather.windDirectionDegrees, shotBearing: bearing))"
+    }
+
+    /// Wind direction from the API is the direction the wind blows *from*, and
+    /// `shotBearing` is the direction the ball travels *to*, so a shot aimed
+    /// straight at the wind's origin is a headwind.
+    private func windRelativeDescription(windDirection: Double, shotBearing: Double) -> String {
+        var diff = shotBearing - windDirection
+        while diff > 180 { diff -= 360 }
+        while diff < -180 { diff += 360 }
+        let magnitude = abs(diff)
+        if magnitude < 45 { return "head" }
+        if magnitude > 135 { return "tail" }
+        return "cross"
+    }
+
     private func elevationText(_ result: PlaysLikeResult) -> String {
-        // Placeholder until we use target location elevation
-        return "Flat"
+        guard let profile = elevationProfile else { return "Unknown" }
+        let change = profile.elevationChange
+        // Matches the <3m dead zone in HoleElevationProfile.distanceMultiplier,
+        // so the label never reads "Flat" while a yardage adjustment is applied.
+        if abs(change) < 3 { return "Flat" }
+        return change > 0 ? "\(Int(change.rounded()))m up" : "\(Int(abs(change).rounded()))m down"
     }
 
     private func calculate() async {
         isLoading = true
-        let elevationProfile = GreystonesElevationData.profile(forHole: holeNumber)
-        
+        let profile = GreystonesElevationData.profile(forHole: holeNumber)
+        self.elevationProfile = profile
+
+        var conditions: WeatherConditions?
         do {
-            let conditions = try await WeatherService.shared.fetchCurrentWeather(
+            conditions = try await WeatherService.shared.fetchCurrentWeather(
                 lat: GreystonesElevationData.courseCenter.lat,
                 lng: GreystonesElevationData.courseCenter.lng
             )
-            self.weather = conditions
-            
-            self.result = DistanceAdjustmentEngine.calculatePlaysLikeDistance(
-                actualDistanceMeters: actualDistance,
-                elevationProfile: elevationProfile,
-                weather: conditions,
-                shotDirection: nil
-            )
         } catch {
-            self.result = DistanceAdjustmentEngine.calculatePlaysLikeDistance(
-                actualDistanceMeters: actualDistance,
-                elevationProfile: elevationProfile,
-                weather: nil,
-                shotDirection: nil
-            )
+            // Leave conditions nil; the engine falls back to elevation only and
+            // the wind/temperature rows render as unavailable rather than as
+            // fabricated calm-and-20°C readings.
+            conditions = nil
         }
+        self.weather = conditions
+
+        self.result = DistanceAdjustmentEngine.calculatePlaysLikeDistance(
+            actualDistanceMeters: actualDistance,
+            elevationProfile: profile,
+            weather: conditions,
+            shotDirection: shotBearing
+        )
         isLoading = false
     }
 }

@@ -53,4 +53,78 @@ final class GreystonesCaddyTests: XCTestCase {
         XCTAssertEqual(stats.avgScoreToPar, 3.0, "Score to par should be +3 for 72 strokes on par 69")
     }
 
+    // MARK: - Plays-like wind adjustment
+
+    /// Bearings must use the same convention as the weather API's wind direction
+    /// (0 = north, 90 = east) or the two can't be compared to work out whether a
+    /// shot is into or down wind.
+    func testBearingDegreesUsesCompassConvention() {
+        // Due north: same longitude, higher latitude.
+        XCTAssertEqual(Geo.bearingDegrees(lat1: 53.0, lng1: -6.0, lat2: 53.1, lng2: -6.0), 0, accuracy: 0.5)
+        // Due east: same latitude, higher longitude.
+        XCTAssertEqual(Geo.bearingDegrees(lat1: 53.0, lng1: -6.0, lat2: 53.0, lng2: -5.9), 90, accuracy: 0.5)
+        // Due south and due west, confirming the 0..<360 normalisation.
+        XCTAssertEqual(Geo.bearingDegrees(lat1: 53.0, lng1: -6.0, lat2: 52.9, lng2: -6.0), 180, accuracy: 0.5)
+        XCTAssertEqual(Geo.bearingDegrees(lat1: 53.0, lng1: -6.0, lat2: 53.0, lng2: -6.1), 270, accuracy: 0.5)
+    }
+
+    /// A shot hit straight at the direction the wind blows from is a headwind and
+    /// must play longer; the reciprocal must play shorter.
+    func testWindMultiplierRespondsToShotDirection() {
+        let intoWind = DistanceAdjustmentEngine.calculateWindMultiplier(
+            windSpeedKph: 20, windDirection: 270, shotDirection: 270)
+        let downWind = DistanceAdjustmentEngine.calculateWindMultiplier(
+            windSpeedKph: 20, windDirection: 270, shotDirection: 90)
+        let crossWind = DistanceAdjustmentEngine.calculateWindMultiplier(
+            windSpeedKph: 20, windDirection: 270, shotDirection: 0)
+
+        XCTAssertGreaterThan(intoWind, 1.0, "Into the wind should play longer")
+        XCTAssertLessThan(downWind, 1.0, "Downwind should play shorter")
+        XCTAssertEqual(crossWind, 1.0, accuracy: 0.001, "A pure crosswind should not change carry distance")
+    }
+
+    /// Regression test for the wind row reading "0 Yds" no matter the conditions:
+    /// the engine only applies a wind multiplier when it is told which way the
+    /// shot is being hit, and the caller was passing nil.
+    func testPlaysLikeAppliesWindOnlyWhenShotDirectionKnown() {
+        let weather = WeatherConditions(
+            temperatureC: 20,        // neutral, so temperature contributes nothing
+            windSpeedKph: 25,
+            windDirectionDegrees: 270,
+            humidity: 70,
+            pressure: 1013
+        )
+        // Flat hole so elevation contributes nothing either, isolating wind.
+        let flatProfile = HoleElevationProfile(
+            holeNumber: 1, teeElevation: 40, greenElevation: 40, fairwayPoints: [])
+
+        let withoutDirection = DistanceAdjustmentEngine.calculatePlaysLikeDistance(
+            actualDistanceMeters: 150, elevationProfile: flatProfile,
+            weather: weather, shotDirection: nil)
+        let withDirection = DistanceAdjustmentEngine.calculatePlaysLikeDistance(
+            actualDistanceMeters: 150, elevationProfile: flatProfile,
+            weather: weather, shotDirection: 270)
+
+        XCTAssertEqual(withoutDirection.adjustmentFactors.windMultiplier, 1.0, accuracy: 0.001,
+                       "Without a shot direction there is no basis for a wind adjustment")
+        XCTAssertGreaterThan(withDirection.adjustmentFactors.windMultiplier, 1.0,
+                             "A 25 kph headwind should make the shot play longer")
+        XCTAssertGreaterThan(withDirection.playsLikeDistance, withoutDirection.playsLikeDistance,
+                             "Supplying the shot direction should change the plays-like distance")
+    }
+
+    /// The elevation row's label and its yardage adjustment come from the same
+    /// profile, so anything the engine treats as flat must not be shown as a
+    /// slope, and vice versa.
+    func testElevationDeadZoneMatchesMultiplier() {
+        let flat = HoleElevationProfile(
+            holeNumber: 1, teeElevation: 40, greenElevation: 42, fairwayPoints: [])
+        XCTAssertEqual(flat.distanceMultiplier, 1.0, accuracy: 0.0001,
+                       "A 2m change is inside the dead zone and should not adjust distance")
+
+        let downhill = HoleElevationProfile(
+            holeNumber: 1, teeElevation: 60, greenElevation: 40, fairwayPoints: [])
+        XCTAssertLessThan(downhill.distanceMultiplier, 1.0, "A 20m drop should play shorter")
+    }
+
 }

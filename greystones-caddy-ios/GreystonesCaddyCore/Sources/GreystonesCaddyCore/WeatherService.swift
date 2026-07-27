@@ -24,7 +24,10 @@ public actor WeatherService {
     }
     
     // Open-Meteo API (free, no key required)
-    let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lng)&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m&wind_speed_unit=kph&temperature_unit=celsius")!
+    // Note the unit is `kmh`, not `kph` — Open-Meteo rejects `kph` outright with
+    // "Cannot initialize WindspeedUnit from invalid String value", which made
+    // every fetch throw and silently fall back to placeholder conditions.
+    let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lng)&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&temperature_unit=celsius")!
     
     let (data, _) = try await URLSession.shared.data(from: url)
     let response = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)

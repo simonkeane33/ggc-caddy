@@ -47,7 +47,10 @@ struct MainGameView: View {
   @State private var pendingFix: (lat: Double, lng: Double, alt: Double?, hAcc: Double?)? = nil
   @State private var editEvent: HoleEvent? = nil
   @State private var showHolePicker = false
-  @State private var selectedDistance: (meters: Double, label: String)? = nil
+  /// The distance pill the user tapped. Carries the shot's compass bearing as
+  /// well as its length — the plays-like engine can't apply any wind adjustment
+  /// without knowing which way the shot is being hit.
+  @State private var selectedDistance: (meters: Double, label: String, bearing: Double?)? = nil
   @State private var showAbandonConfirm = false
   @State private var greenCenter: CLLocationCoordinate2D? = nil
 
@@ -104,8 +107,12 @@ struct MainGameView: View {
                 // whichever screen edge it's nearest, so dragging the target
                 // toward either edge doesn't push them off-screen.
                 VStack(spacing: 80) {
-                  distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white, identifier: "mainToGreenDistance")
-                  distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black, identifier: "mainCurrentShotDistance")
+                  // Each pill's bearing matches the leg it measures, so the wind
+                  // adjustment is computed for the shot actually being described.
+                  distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white, identifier: "mainToGreenDistance",
+                              bearing: bearing(from: activeTarget, to: g))
+                  distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black, identifier: "mainCurrentShotDistance",
+                              bearing: bearing(from: tee, to: activeTarget))
                 }
                 .offset(x: isRightOfViewport ? -100 : 100, y: 0)
               }
@@ -217,7 +224,7 @@ struct MainGameView: View {
         PlaysLikeDetailSheet(
             actualDistance: selection.val.meters,
             holeNumber: state.holeNumber,
-            targetLocation: nil
+            shotBearing: selection.val.bearing
         )
         .presentationDetents([.large])
     }
@@ -313,9 +320,9 @@ struct MainGameView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
   }
   
-  private func distanceTag(meters: Double, label: String, color: Color, identifier: String? = nil) -> some View {
+  private func distanceTag(meters: Double, label: String, color: Color, identifier: String? = nil, bearing: Double? = nil) -> some View {
       Button {
-          selectedDistance = (meters: meters, label: label)
+          selectedDistance = (meters: meters, label: label, bearing: bearing)
       } label: {
           HStack(spacing: 0) {
               Text("\(Int(Distance.metresToYards(meters)))y")
@@ -485,6 +492,10 @@ struct MainGameView: View {
       return l.distance(from: CLLocation(latitude: g.latitude, longitude: g.longitude))
   }
   
+  private func bearing(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> Double {
+      Geo.bearingDegrees(lat1: from.latitude, lng1: from.longitude, lat2: to.latitude, lng2: to.longitude)
+  }
+
   private func distanceMeters(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> Double {
       CLLocation(latitude: from.latitude, longitude: from.longitude)
           .distance(from: CLLocation(latitude: to.latitude, longitude: to.longitude))
@@ -762,5 +773,5 @@ private struct ShotConfirmSheet: View {
 
 private struct DistanceSelection: Identifiable {
     let id = UUID()
-    let val: (meters: Double, label: String)
+    let val: (meters: Double, label: String, bearing: Double?)
 }
