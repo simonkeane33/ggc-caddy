@@ -66,13 +66,53 @@ public struct WeatherConditions: Sendable {
   public var windDirectionDegrees: Double // 0 = North, 90 = East, etc.
   public var humidity: Double
   public var pressure: Double
+  /// WMO weather interpretation code from Open-Meteo. Defaulted so existing
+  /// callers and tests that don't care about conditions still compile.
+  public var weatherCode: Int
 
-  public init(temperatureC: Double, windSpeedKph: Double, windDirectionDegrees: Double, humidity: Double, pressure: Double) {
+  public init(temperatureC: Double, windSpeedKph: Double, windDirectionDegrees: Double, humidity: Double, pressure: Double, weatherCode: Int = 0) {
     self.temperatureC = temperatureC
     self.windSpeedKph = windSpeedKph
     self.windDirectionDegrees = windDirectionDegrees
     self.humidity = humidity
     self.pressure = pressure
+    self.weatherCode = weatherCode
+  }
+
+  /// Short human label for the current conditions, from the WMO code table.
+  public var conditionDescription: String {
+    switch weatherCode {
+    case 0: return "Clear"
+    case 1: return "Mostly clear"
+    case 2: return "Partly cloudy"
+    case 3: return "Overcast"
+    case 45, 48: return "Fog"
+    case 51, 53, 55, 56, 57: return "Drizzle"
+    case 61, 63, 65, 66, 67: return "Rain"
+    case 71, 73, 75, 77: return "Snow"
+    case 80, 81, 82: return "Showers"
+    case 85, 86: return "Snow showers"
+    case 95, 96, 99: return "Thunderstorm"
+    default: return "—"
+    }
+  }
+
+  /// SF Symbol matching `conditionDescription`.
+  public var conditionSymbol: String {
+    switch weatherCode {
+    case 0: return "sun.max.fill"
+    case 1: return "sun.min.fill"
+    case 2: return "cloud.sun.fill"
+    case 3: return "cloud.fill"
+    case 45, 48: return "cloud.fog.fill"
+    case 51, 53, 55, 56, 57: return "cloud.drizzle.fill"
+    case 61, 63, 65, 66, 67: return "cloud.rain.fill"
+    case 71, 73, 75, 77: return "cloud.snow.fill"
+    case 80, 81, 82: return "cloud.heavyrain.fill"
+    case 85, 86: return "cloud.snow.fill"
+    case 95, 96, 99: return "cloud.bolt.rain.fill"
+    default: return "cloud.fill"
+    }
   }
 
   /// Temperature-adjusted distance multiplier

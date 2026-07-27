@@ -4,6 +4,12 @@ import GreystonesCaddyCore
 struct HomeView: View {
   @EnvironmentObject var state: AppState
 
+  /// At-a-glance context for the landing screen. Both are read-only glances,
+  /// not dashboard content — the screen still has exactly one job, which is to
+  /// get the player into a round.
+  @State private var weather: WeatherConditions? = nil
+  @State private var lastRound: (score: Int, date: Date)? = nil
+
   var body: some View {
     NavigationStack {
       ZStack {
@@ -44,17 +50,20 @@ struct HomeView: View {
           Image("ClubLogo")
             .resizable()
             .scaledToFit()
-            .frame(maxWidth: 180)
+            .frame(maxWidth: 270)
             .padding(.top, 60)
           Spacer()
         }
 
-        // CTA row in lower third
+        // CTA row in lower third, with the glance strip sitting directly above it
         VStack {
           Spacer()
-          primaryActions
-            .padding(.horizontal, 24)
-            .padding(.bottom, 56)
+          VStack(spacing: 18) {
+            glanceStrip
+            primaryActions
+          }
+          .padding(.horizontal, 24)
+          .padding(.bottom, 56)
         }
 
         // Overflow menu — top-right. Replaces the settings cog; History and
@@ -102,6 +111,15 @@ struct HomeView: View {
       }
       .navigationBarTitleDisplayMode(.inline)
       .toolbar(.hidden, for: .navigationBar)
+      // Re-read on every appearance so finishing a round updates the strip when
+      // the player lands back here.
+      .onAppear { loadLastRound() }
+      .task {
+        weather = try? await WeatherService.shared.fetchCurrentWeather(
+          lat: GreystonesElevationData.courseCenter.lat,
+          lng: GreystonesElevationData.courseCenter.lng
+        )
+      }
     }
   }
 
@@ -136,6 +154,88 @@ struct HomeView: View {
       .buttonStyle(.plain)
       .accessibilityIdentifier("startRoundButton")
     }
+  }
+
+  /// Conditions on the left, last completed round on the right. Each half is
+  /// omitted when its data isn't there — no placeholder zeros, and no empty
+  /// strip on a fresh install with no rounds and no network.
+  @ViewBuilder
+  private var glanceStrip: some View {
+    if weather != nil || lastRound != nil {
+      HStack(spacing: 0) {
+        if let weather {
+          HStack(spacing: 10) {
+            Image(systemName: weather.conditionSymbol)
+              .font(.system(size: 18))
+              .foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 1) {
+              Text("\(Int(weather.temperatureC.rounded()))°  ·  \(weather.conditionDescription)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+              Text(windSummary(weather))
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        if weather != nil && lastRound != nil {
+          Rectangle()
+            .fill(.white.opacity(0.25))
+            .frame(width: 1, height: 32)
+            .padding(.horizontal, 12)
+        }
+
+        if let lastRound {
+          VStack(alignment: .trailing, spacing: 1) {
+            Text("Last round  \(lastRound.score)")
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(.white)
+              .lineLimit(1)
+            Text(lastRound.date.formatted(.dateTime.day().month(.abbreviated)))
+              .font(.caption2)
+              .foregroundStyle(.white.opacity(0.75))
+              .lineLimit(1)
+          }
+          .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(.black.opacity(0.35))
+      .clipShape(RoundedRectangle(cornerRadius: 14))
+      .overlay(
+        RoundedRectangle(cornerRadius: 14)
+          .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+      )
+    }
+  }
+
+  private func windSummary(_ weather: WeatherConditions) -> String {
+    let speed = Int(weather.windSpeedKph.rounded())
+    guard speed > 0 else { return "Wind calm" }
+    let points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    let normalised = (weather.windDirectionDegrees.truncatingRemainder(dividingBy: 360) + 360)
+      .truncatingRemainder(dividingBy: 360)
+    return "Wind \(points[Int((normalised / 45).rounded()) % 8]) \(speed) Kmph"
+  }
+
+  /// Most recent round the player actually finished. In-progress and abandoned
+  /// rounds are skipped — a half-played round isn't a score worth reporting.
+  private func loadLastRound() {
+    guard let round = (try? GCDB.shared.listRounds(limit: 30))?
+      .first(where: { $0.completionState == .completed }),
+      let score = try? GCDB.shared.totalScoreFromHoleScores(roundId: round.id),
+      score > 0
+    else {
+      lastRound = nil
+      return
+    }
+    lastRound = (score, round.endedAt ?? round.startedAt)
   }
 
   private enum CTAStyle { case primary, secondary }

@@ -27,7 +27,7 @@ public actor WeatherService {
     // Note the unit is `kmh`, not `kph` — Open-Meteo rejects `kph` outright with
     // "Cannot initialize WindspeedUnit from invalid String value", which made
     // every fetch throw and silently fall back to placeholder conditions.
-    let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lng)&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&temperature_unit=celsius")!
+    let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lng)&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=kmh&temperature_unit=celsius")!
     
     let (data, _) = try await URLSession.shared.data(from: url)
     let response = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
@@ -37,7 +37,8 @@ public actor WeatherService {
       windSpeedKph: response.current.wind_speed_10m,
       windDirectionDegrees: response.current.wind_direction_10m,
       humidity: Double(response.current.relative_humidity_2m),
-      pressure: response.current.pressure_msl
+      pressure: response.current.pressure_msl,
+      weatherCode: response.current.weather_code
     )
     
     // Cache result
@@ -66,6 +67,7 @@ private struct CurrentWeather: Codable {
   let pressure_msl: Double
   let wind_speed_10m: Double
   let wind_direction_10m: Double
+  let weather_code: Int
 }
 
 // MARK: - Greystones Course Elevation Data
