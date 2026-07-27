@@ -70,10 +70,12 @@ struct TargetGuideOverlay<Accessory: View>: View {
     let onCommit: (CLLocationCoordinate2D) -> Void
     /// Extra content centred on the crosshair — distance pills and the like.
     /// Drawn above the catch area so its controls stay tappable. The second
-    /// parameter is `true` when the crosshair is in the right half of the
-    /// overlay's *screen* space, so callers can flip a side-anchored layout
-    /// away from whichever edge the target is closest to.
-    @ViewBuilder let accessory: (CLLocationCoordinate2D, Bool) -> Accessory
+    /// and third parameters are the crosshair's x position and the overlay's
+    /// width, both in the overlay's screen space, so callers can decide which
+    /// side to anchor a side-anchored layout on using the actual room
+    /// available (e.g. keep distance pills clear of a button column on one
+    /// edge).
+    @ViewBuilder let accessory: (CLLocationCoordinate2D, CGFloat, CGFloat) -> Accessory
 
     /// Touch catch area around the crosshair.
     ///
@@ -152,7 +154,7 @@ struct TargetGuideOverlay<Accessory: View>: View {
                     .accessibilityIdentifier(crosshairIdentifier)
                     .allowsHitTesting(false)
 
-                accessory(activeTarget, crosshairPoint.x > geo.size.width / 2)
+                accessory(activeTarget, crosshairPoint.x, geo.size.width)
                     .position(crosshairPoint)
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -253,7 +255,7 @@ extension TargetGuideOverlay where Accessory == EmptyView {
             ringYardages: ringYardages,
             crosshairIdentifier: crosshairIdentifier,
             onCommit: onCommit,
-            accessory: { _, _ in EmptyView() }
+            accessory: { _, _, _ in EmptyView() }
         )
     }
 }

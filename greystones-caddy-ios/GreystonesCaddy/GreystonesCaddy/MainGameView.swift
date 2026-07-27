@@ -114,6 +114,41 @@ struct MainGameView: View {
     .accessibilityLabel("Wind \(windLabel)")
   }
 
+  /// Custom compass dial for the header. A two-tone diamond needle (red
+  /// north / light south) with "N" at the north tip rotates by the negative of
+  /// the map's live heading so it always points to true north on the rotated
+  /// map; tapping resets the map to north-up. Always visible — unlike
+  /// MapCompass, which hides itself when the map is already north-up.
+  private var compassControl: some View {
+    Button {
+      resetMapToNorth()
+    } label: {
+      ZStack {
+        Circle().fill(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
+        Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+        // Compass rose — sized to the dial so it rotates about the dial centre.
+        ZStack {
+          CompassSouthHalf().fill(Color.white.opacity(0.55)).frame(width: 22, height: 22)
+          CompassNorthHalf().fill(Color.red).frame(width: 22, height: 22)
+          // N sits at the north tip; the offset is inside the rotating frame so
+          // it orbits with the needle.
+          Text("N")
+            .font(.system(size: 8, weight: .heavy))
+            .foregroundColor(.white)
+            .offset(y: -16)
+        }
+        .frame(width: 44, height: 44)
+        .rotationEffect(.degrees(-cameraHeading))
+        Circle().fill(Color.white).frame(width: 3, height: 3)
+      }
+      .frame(width: 44, height: 44)
+      .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Compass")
+    .accessibilityHint("Reset map to north up")
+  }
+
   var body: some View {
     let hole = state.currentHole
     
@@ -136,6 +171,11 @@ struct MainGameView: View {
             }
           }
           .mapStyle(.imagery)
+          // Suppress the map's default controls — notably the compass, which
+          // sits top-right under the status bar / dynamic island. An explicit
+          // empty mapControls builder replaces the defaults. A custom compass
+          // dial is rendered in the header instead.
+          .mapControls {}
           .onMapCameraChange(frequency: .continuous) { context in
             drag.cameraDidChange()
             cameraDistance = context.camera.distance
@@ -166,10 +206,21 @@ struct MainGameView: View {
                 updated[state.holeNumber] = coord
                 targetByHole = updated
               },
-              accessory: { activeTarget, isRightOfViewport in
-                // Anchor the pills on the side of the crosshair away from
-                // whichever screen edge it's nearest, so dragging the target
-                // toward either edge doesn't push them off-screen.
+              accessory: { activeTarget, crosshairX, viewportWidth in
+                // Default the pills to the LEFT of the target. The right edge
+                // is occupied by the action-button column, so a right-side
+                // placement often hides them behind those buttons; the left is
+                // usually empty. Only fall back to the right when the target
+                // is far enough left that a right placement clears the button
+                // column — otherwise keep them left, even if that tucks them
+                // near the left edge, which reads better than sitting behind
+                // the buttons.
+                let pillOffset: CGFloat = 100
+                let pillHalfWidth: CGFloat = 80
+                let rightButtonZone: CGFloat = 70
+                let margin: CGFloat = 8
+                let rightIsClean = crosshairX + pillOffset + pillHalfWidth + margin
+                  <= viewportWidth - rightButtonZone
                 VStack(spacing: 80) {
                   // Each pill's bearing matches the leg it measures, so the wind
                   // adjustment is computed for the shot actually being described.
@@ -178,7 +229,7 @@ struct MainGameView: View {
                   distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black, identifier: "mainCurrentShotDistance",
                               bearing: bearing(from: tee, to: activeTarget))
                 }
-                .offset(x: isRightOfViewport ? -100 : 100, y: 0)
+                .offset(x: rightIsClean ? pillOffset : -pillOffset, y: 0)
               }
             )
           }
@@ -412,6 +463,17 @@ struct MainGameView: View {
         }
         Spacer()
       }
+
+      // Custom compass dial on the trailing edge of the header, level with the
+      // info pill (the pill's 52pt side padding keeps it clear). Built by hand
+      // rather than using MapCompass — the standalone control proved unreliable
+      // to reposition (wouldn't rotate / stay visible outside the map's default
+      // control set). The needle rotates with the live camera heading and taps
+      // to reset the map to north-up.
+      HStack {
+        Spacer()
+        compassControl
+      }
     }
     .padding(.horizontal)
     .padding(.top, 8)
@@ -478,7 +540,10 @@ struct MainGameView: View {
           .background(.ultraThinMaterial)
           .foregroundColor(.white)
           .clipShape(Capsule())
-          .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+          // Stronger outline than the rest of the overlays — the material pill
+          // would otherwise bleed into the aerial imagery, and this is the
+          // primary action on the screen.
+          .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1.5))
           .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
       }
       
@@ -653,6 +718,20 @@ struct MainGameView: View {
           } else {
               camera = framedOverviewCamera(tee: tee, green: g).position
           }
+      }
+  }
+
+  /// Resets the map heading to north-up while keeping the current centre and
+  /// distance. Bound to the header compass tap.
+  private func resetMapToNorth() {
+      guard let cam = camera.camera else { return }
+      withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
+          camera = .camera(MapCamera(
+              centerCoordinate: cam.centerCoordinate,
+              distance: cam.distance,
+              heading: 0,
+              pitch: 0
+          ))
       }
   }
 
@@ -862,4 +941,30 @@ private struct ShotConfirmSheet: View {
 private struct DistanceSelection: Identifiable {
     let id = UUID()
     let val: (meters: Double, label: String, bearing: Double?)
+}
+
+/// Top (north) half of the compass needle: a triangle with its apex at the top
+/// of the rect and its base across the middle.
+private struct CompassNorthHalf: Shape {
+  func path(in r: CGRect) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: r.midX, y: r.minY))
+    p.addLine(to: CGPoint(x: r.minX, y: r.midY))
+    p.addLine(to: CGPoint(x: r.maxX, y: r.midY))
+    p.closeSubpath()
+    return p
+  }
+}
+
+/// Bottom (south) half of the compass needle: apex at the bottom, base across
+/// the middle. Combined with `CompassNorthHalf` it forms a diamond.
+private struct CompassSouthHalf: Shape {
+  func path(in r: CGRect) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: r.midX, y: r.maxY))
+    p.addLine(to: CGPoint(x: r.minX, y: r.midY))
+    p.addLine(to: CGPoint(x: r.maxX, y: r.midY))
+    p.closeSubpath()
+    return p
+  }
 }
