@@ -10,10 +10,11 @@ struct MainGameView: View {
 
   // Map state
   @State private var camera: MapCameraPosition = .automatic
-  @State private var dragTarget: CLLocationCoordinate2D? = nil
+  /// Live target position while a drag is in flight. `@State` rather than
+  /// `@StateObject` on purpose — see `TargetDragState`.
+  @State private var drag = TargetDragState()
   /// Per-hole target; nil = use default (midpoint tee↔green). Never persists across holes.
   @State private var targetByHole: [Int: CLLocationCoordinate2D] = [:]
-  @State private var isZoomedOnTarget: Bool = false
   /// Last hole we applied framing for; avoids re-framing when returning from Scorecard etc.
   @State private var lastFramedHole: Int? = nil
   
@@ -38,67 +39,59 @@ struct MainGameView: View {
     ZStack {
       // 1. PRIMARY MAP LAYER
       MapReader { proxy in
-        Map(position: $camera) {
-          UserAnnotation()
-          
-          if let tee = teeLocation, let g = greenCenter {
-            let activeTarget = dragTarget ?? targetByHole[state.holeNumber] ?? midPoint(tee, g)
-            
-            // Smoother Line Logic
-            MapPolyline(coordinates: [tee, activeTarget, g])
-              .stroke(.white.opacity(0.8), lineWidth: 2)
-            
-            Annotation("Target", coordinate: activeTarget) {
-              ZStack {
-                TargetCrosshair(isZoomed: isZoomedOnTarget)
-                
-                // 18Birdies style: Fixed logic for pill positioning
-                // Using longitude difference from green center to decide side
-                let isRightOfGreen = activeTarget.longitude > (greenCenter?.longitude ?? 0)
-                let xOffset: CGFloat = isRightOfGreen ? -100 : 100
-                
-                VStack(spacing: 80) { 
-                    distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white)
-                    distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black)
-                }
-                .offset(x: xOffset, y: 0)
+        ZStack {
+          Map(position: $camera) {
+            UserAnnotation()
+
+            // Green points
+            if let g = greenCenter {
+              Annotation("Green", coordinate: g) {
+                Image(systemName: "flag.circle.fill").font(.title2).foregroundStyle(.green)
               }
-              .contentShape(Circle())
-              .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .global)
-                  .onChanged { value in
-                      if let coord = proxy.convert(value.location, from: .global) {
-                          dragTarget = coord
-                          if !isZoomedOnTarget {
-                              withAnimation(.easeOut(duration: 0.2)) {
-                                  isZoomedOnTarget = true
-                              }
-                          }
-                      }
-                  }
-                  .onEnded { value in
-                      if let coord = proxy.convert(value.location, from: .global) {
-                          var updated = targetByHole
-                          updated[state.holeNumber] = coord
-                          targetByHole = updated
-                          dragTarget = nil
-                          withAnimation(.easeIn(duration: 0.2)) {
-                              isZoomedOnTarget = false
-                          }
-                      }
-                  }
-              )
             }
           }
-          
-          // Green points
-          if let g = greenCenter {
-            Annotation("Green", coordinate: g) {
-              Image(systemName: "flag.circle.fill").font(.title2).foregroundStyle(.green)
-            }
+          .mapStyle(.imagery)
+          .onMapCameraChange(frequency: .continuous) { _ in
+            drag.cameraDidChange()
+          }
+
+          // The target line and crosshair are drawn in SwiftUI screen space
+          // rather than as a MapPolyline and an Annotation. Re-coordinating
+          // those on every drag frame made the target trail the finger and the
+          // line trail the target: MapKit animates annotation moves internally
+          // and draws overlays on a separate thread. Here a drag only re-renders
+          // this overlay, so the line stays pinned to the crosshair.
+          if let tee = teeLocation, let g = greenCenter {
+            TargetGuideOverlay(
+              proxy: proxy,
+              drag: drag,
+              tee: tee,
+              green: g,
+              committedTarget: targetByHole[state.holeNumber] ?? midPoint(tee, g),
+              isZoomed: false,
+              ringYardages: [],
+              crosshairIdentifier: "mainTargetCrosshair",
+              onCommit: { coord in
+                var updated = targetByHole
+                updated[state.holeNumber] = coord
+                targetByHole = updated
+              },
+              accessory: { activeTarget in
+                // Keep the pills on the far side of the green so they never sit
+                // on top of the line.
+                let isRightOfGreen = activeTarget.longitude > g.longitude
+                VStack(spacing: 80) {
+                  distanceTag(meters: distanceMeters(from: activeTarget, to: g), label: "To Green", color: .white)
+                  distanceTag(meters: distanceMeters(from: tee, to: activeTarget), label: "Current Shot", color: .black)
+                }
+                .offset(x: isRightOfGreen ? -100 : 100, y: 0)
+              }
+            )
           }
         }
-        .mapStyle(.imagery)
+        // Both the map and the overlay must span the same rect, otherwise the
+        // overlay's local space is offset from the map's and the crosshair
+        // renders away from the line.
         .ignoresSafeArea()
       }
       
@@ -478,12 +471,6 @@ struct MainGameView: View {
       CLLocationCoordinate2D(latitude: (c1.latitude + c2.latitude) / 2, longitude: (c1.longitude + c2.longitude) / 2)
   }
 
-  private func updateCameraForTarget(_ coord: CLLocationCoordinate2D) {
-      if isZoomedOnTarget {
-          camera = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)))
-      }
-  }
-
   // MARK: - Hole framing (hole-map-framing-and-target-behaviour)
   // v1: Tee + green center anchors; MapCamera with heading; overlay-safe padding; animated.
   // Apply only on round start and hole change — not when returning to same hole.
@@ -589,18 +576,6 @@ struct MainGameView: View {
       refreshStats()
       showShotConfirm = false
   }
-}
-
-private struct TargetCrosshair: View {
-    let isZoomed: Bool
-    var body: some View {
-        ZStack {
-            Circle().strokeBorder(.white, lineWidth: isZoomed ? 3 : 2).background(Circle().fill(.black.opacity(0.3))).frame(width: isZoomed ? 60 : 44, height: isZoomed ? 60 : 44)
-            Rectangle().fill(.white).frame(width: isZoomed ? 30 : 20, height: 1)
-            Rectangle().fill(.white).frame(width: 1, height: isZoomed ? 30 : 20)
-            Circle().fill(.white).frame(width: 4, height: 4)
-        }
-    }
 }
 
 // MARK: - Hole Picker Sheet

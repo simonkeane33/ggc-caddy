@@ -583,6 +583,13 @@ final class GreystonesCaddyUITests: XCTestCase {
         beforeAttachment.lifetime = .keepAlways
         add(beforeAttachment)
 
+        // The tee marker anchors the map. If the map pans while the target is
+        // dragged, this moves — which is the failure the old interaction-mode
+        // gating existed to prevent.
+        let teeMarker = app.descendants(matching: .any).matching(identifier: "Tee").firstMatch
+        XCTAssertTrue(teeMarker.waitForExistence(timeout: 5), "Tee marker should be on screen")
+        let teeBefore = teeMarker.frame
+
         // Drag the crosshair upward to move the target toward the tee.
         let beforeFrame = crosshair.frame
         let crosshairCenter = crosshair.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -612,5 +619,10 @@ final class GreystonesCaddyUITests: XCTestCase {
                        "Crosshair should land horizontally on the release point. Landed \(afterCenter), released \(dragEndPoint)")
         XCTAssertEqual(afterCenter.y, dragEndPoint.y, accuracy: 12,
                        "Crosshair should land vertically on the release point. Landed \(afterCenter), released \(dragEndPoint)")
+
+        // The drag must move the target, not the map.
+        let teeAfter = teeMarker.frame
+        XCTAssertEqual(teeAfter.midX, teeBefore.midX, accuracy: 2, "Map panned horizontally during the target drag")
+        XCTAssertEqual(teeAfter.midY, teeBefore.midY, accuracy: 2, "Map panned vertically during the target drag")
     }
 }
