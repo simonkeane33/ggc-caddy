@@ -57,9 +57,7 @@ struct MainGameView: View {
   /// if it fails — the button shows "—" rather than inventing a figure.
   @State private var weather: WeatherConditions? = nil
 
-  /// Compact enough for the 48pt tool button: the direction the wind blows
-  /// from, then the speed. Kmph is implied here and spelled out in the
-  /// plays-like sheet, where there's room for it.
+  /// The direction the wind blows from, then the speed.
   private var windLabel: String {
     guard let weather else { return "—" }
     let speed = Int(weather.windSpeedKph.rounded())
@@ -68,6 +66,26 @@ struct MainGameView: View {
     let normalised = (weather.windDirectionDegrees.truncatingRemainder(dividingBy: 360) + 360)
       .truncatingRemainder(dividingBy: 360)
     return "\(points[Int((normalised / 45).rounded()) % 8]) \(speed)"
+  }
+
+  /// Conditions read-out. Deliberately a capsule rather than one of the circular
+  /// tool buttons, and not wrapped in a Button, so it doesn't read as tappable.
+  private var windStatusChip: some View {
+    HStack(spacing: 5) {
+      Image(systemName: "wind").font(.system(size: 12, weight: .semibold))
+      Text(windLabel)
+        .font(.system(size: 12, weight: .bold))
+        .lineLimit(1)
+    }
+    .foregroundColor(.white)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 7)
+    .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
+    .clipShape(Capsule())
+    .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+    .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Wind \(windLabel)")
   }
 
   var body: some View {
@@ -150,10 +168,17 @@ struct MainGameView: View {
       // 3. RIGHT SIDEBAR: TOOLS
       HStack {
         Spacer()
-        VStack(spacing: 12) {
-          // Live conditions, not the hardcoded "12 mph" this used to show
-          // regardless of the actual weather.
-          toolButton(icon: "wind", label: windLabel)
+        // Trailing alignment keeps the circular buttons pinned to the right
+        // edge. Centred, they would shift left to centre within the wider wind
+        // capsule and overlap the distance pills.
+        VStack(alignment: .trailing, spacing: 22) {
+          // Read-out, not a control. It used to be a circular tool button with
+          // an empty action, which sat in the action cluster and looked
+          // tappable. Capsule shape and a wider gap separate it from the
+          // buttons below.
+          windStatusChip
+
+          VStack(spacing: 12) {
 
           // Green Intelligence Button
           Menu {
@@ -196,6 +221,7 @@ struct MainGameView: View {
               NavigationLink("Settings") { SettingsView() }
           } label: {
               toolButton(icon: "ellipsis.circle", label: "Tools")
+          }
           }
         }
         .padding(.trailing, 12)
@@ -282,6 +308,24 @@ struct MainGameView: View {
   
   // MARK: - Components
   
+  /// One caption-over-value column of the header pill. Both lines are pinned to
+  /// a single line and allowed to scale down, so the pill degrades by shrinking
+  /// text rather than wrapping it.
+  private func headerStat(_ title: String, _ value: String) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+      Text(value)
+        .font(.title3.bold())
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+    }
+    .fixedSize(horizontal: false, vertical: true)
+  }
+
   private func headerOverlay(_ hole: CourseBundle.Hole?) -> some View {
     HStack {
       Button { dismiss() } label: {
@@ -295,39 +339,24 @@ struct MainGameView: View {
       }
       
       if let hole {
-        HStack(spacing: 20) {
+        // Every label here is single-line and allowed to scale down. The
+        // distance column previously used .fixedSize(), so an unexpectedly long
+        // value (a GPS fix far from the course yields seven-figure yardages)
+        // refused to shrink and squeezed the remaining columns until their text
+        // wrapped one character per line.
+        HStack(spacing: 14) {
           VStack(alignment: .leading) {
-            Text("\(hole.number)").font(.title.bold())
-            Image(systemName: "arrowtriangle.down.fill").font(.caption)
+            Text("\(hole.number)").font(.title2.bold())
+            Image(systemName: "arrowtriangle.down.fill").font(.caption2)
           }
           .onTapGesture { showHolePicker = true }
-          
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Mid Green").font(.caption).foregroundStyle(.secondary)
-                .lineLimit(1)
-                .fixedSize()
-            Text("\(Int(Distance.metresToYards(greenDistanceMeters)))Yds")
-                .font(.title2.bold())
-                .lineLimit(1)
-                .fixedSize()
-          }
-          
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Par").font(.caption).foregroundStyle(.secondary)
-            Text("\(hole.par[state.tee])").font(.title2.bold())
-          }
-          
-          VStack(alignment: .leading, spacing: 2) {
-            Text(state.tee.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
-            Text("\(hole.distance_m[state.tee])").font(.title2.bold())
-          }
-          
-          VStack(alignment: .leading, spacing: 2) {
-            Text("HC").font(.caption).foregroundStyle(.secondary)
-            Text("\(Int(state.course.holes[hole.number-1].si[state.tee]))").font(.title2.bold())
-          }
+
+          headerStat("Mid Green", "\(Int(Distance.metresToYards(greenDistanceMeters)))Yds")
+          headerStat("Par", "\(hole.par[state.tee])")
+          headerStat(state.tee.rawValue.capitalized, "\(hole.distance_m[state.tee])")
+          headerStat("HC", "\(Int(state.course.holes[hole.number-1].si[state.tee]))")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
         .clipShape(Capsule())

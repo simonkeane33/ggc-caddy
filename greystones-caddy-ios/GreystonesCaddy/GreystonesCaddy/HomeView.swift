@@ -21,8 +21,17 @@ struct HomeView: View {
               .frame(width: geo.size.width, height: geo.size.height)
               .clipped()
 
+            // Scrim for the controls in the lower third only. Evenly spaced
+            // stops previously put 50% black across the middle of the frame,
+            // dimming the whole photograph; holding it clear to just under
+            // halfway keeps the hero bright while still backing the buttons.
             LinearGradient(
-              colors: [.clear, .black.opacity(0.5), .black.opacity(0.85)],
+              stops: [
+                .init(color: .clear, location: 0.0),
+                .init(color: .clear, location: 0.45),
+                .init(color: .black.opacity(0.45), location: 0.78),
+                .init(color: .black.opacity(0.7), location: 1.0)
+              ],
               startPoint: .top,
               endPoint: .bottom
             )
