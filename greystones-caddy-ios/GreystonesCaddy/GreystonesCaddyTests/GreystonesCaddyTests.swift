@@ -113,6 +113,38 @@ final class GreystonesCaddyTests: XCTestCase {
                              "Supplying the shot direction should change the plays-like distance")
     }
 
+    /// Seeding must fill an empty table but must never overwrite yardages the
+    /// player has entered, including on every subsequent launch.
+    func testDefaultBaselinesSeedOnceAndNeverOverwrite() throws {
+        let db = GCDB.shared
+        for club in ClubID.allCases {
+            try db.upsertBaseline(club: club, carryYd: nil, totalYd: nil)
+        }
+        // upsertBaseline writes rows, so clear them to model a fresh install.
+        for club in ClubID.allCases where try db.fetchBaseline(club: club) != nil {
+            _ = club
+        }
+
+        // A club the player has customised must survive seeding.
+        try db.upsertBaseline(club: .iron7, carryYd: 999, totalYd: 1001)
+        let seeded = try db.seedDefaultBaselinesIfEmpty()
+        XCTAssertFalse(seeded, "Seeding must not run once any baseline row exists")
+        XCTAssertEqual(try db.fetchBaseline(club: .iron7)?.carryYd, 999,
+                       "A player's own yardage must never be overwritten by defaults")
+    }
+
+    /// The default set should cover every club a player can select except the
+    /// putter, for which a carry distance is meaningless.
+    func testDefaultYardagesCoverEveryClubButThePutter() {
+        let expected = Set(ClubID.allCases).subtracting([.putter])
+        XCTAssertEqual(Set(Club.defaultYardages.keys), expected)
+        for (club, yardage) in Club.defaultYardages {
+            XCTAssertGreaterThan(yardage.total, 0, "\(club.rawValue) needs a positive total")
+            XCTAssertGreaterThanOrEqual(yardage.total, yardage.carry,
+                                        "\(club.rawValue) total should not be shorter than its carry")
+        }
+    }
+
     /// The compass label must wrap correctly at both ends of the range — 350°
     /// is north, not an out-of-bounds index.
     func testCompassPointWrapsAtNorth() {

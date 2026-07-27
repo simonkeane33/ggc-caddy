@@ -55,4 +55,24 @@ public extension GCDB {
       try ClubBaseline.fetchAll(db)
     }
   }
+
+  /// Populates club yardages with mid-range defaults the first time the app
+  /// runs, so recommendations and visuals have something to work with instead
+  /// of every club reading "Not set".
+  ///
+  /// Only seeds when the table is completely empty — once the player has
+  /// entered or edited anything, their numbers are never overwritten, including
+  /// on later launches.
+  @discardableResult
+  func seedDefaultBaselinesIfEmpty() throws -> Bool {
+    try dbQueue.write { db in
+      guard try ClubBaseline.fetchCount(db) == 0 else { return false }
+      let now = Date()
+      for (club, yardage) in Club.defaultYardages {
+        var rec = ClubBaseline(club: club, updatedAt: now, carryYd: yardage.carry, totalYd: yardage.total)
+        try rec.insert(db)
+      }
+      return true
+    }
+  }
 }

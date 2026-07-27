@@ -49,33 +49,51 @@ struct HomeView: View {
           Spacer()
         }
 
-        // CTA stack in lower third
+        // CTA row in lower third
         VStack {
           Spacer()
-          VStack(spacing: 20) {
-            primaryCTA
-            if state.activeRoundId != nil {
-              secondaryCTA
-            }
-            hubLinks
-          }
-          .padding(.bottom, 56)
+          primaryActions
+            .padding(.horizontal, 24)
+            .padding(.bottom, 56)
         }
 
-        // Settings overlay — top-right, white
+        // Overflow menu — top-right. Replaces the settings cog; History and
+        // Stats moved in here so the lower third is a single row of primary
+        // actions rather than three stacked rows of competing buttons.
         VStack {
           HStack {
             Spacer()
-            NavigationLink {
-              SettingsView()
+            Menu {
+              NavigationLink {
+                RoundHistoryView()
+              } label: {
+                Label("Round history", systemImage: "clock.arrow.circlepath")
+              }
+              .accessibilityIdentifier("historyLink")
+
+              NavigationLink {
+                StatsDashboardView()
+              } label: {
+                Label("Stats", systemImage: "chart.bar.fill")
+              }
+              .accessibilityIdentifier("statsLink")
+
+              Divider()
+
+              NavigationLink {
+                SettingsView()
+              } label: {
+                Label("Settings", systemImage: "gear")
+              }
+              .accessibilityIdentifier("settingsButton")
             } label: {
-              Image(systemName: "gear")
+              Image(systemName: "line.3.horizontal")
                 .font(.title3)
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
             }
-            .accessibilityIdentifier("settingsButton")
+            .accessibilityIdentifier("homeMenuButton")
             .padding(.trailing, 16)
             .padding(.top, 8)
           }
@@ -87,16 +105,28 @@ struct HomeView: View {
     }
   }
 
+  /// The two primary actions, side by side and equally weighted. With a round
+  /// in progress both are shown; otherwise "Start round" takes the full width.
   @ViewBuilder
-  private var primaryCTA: some View {
+  private var primaryActions: some View {
     if state.activeRoundId != nil {
-      NavigationLink {
-        ResumeRoundView(roundId: state.activeRoundId!)
-      } label: {
-        ctaButton(label: "Resume round", icon: "play.circle.fill")
+      HStack(spacing: 12) {
+        NavigationLink {
+          ResumeRoundView(roundId: state.activeRoundId!)
+        } label: {
+          ctaButton(label: "Resume", icon: "play.circle.fill", style: .secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("resumeRoundButton")
+
+        NavigationLink {
+          RoundSetupView()
+        } label: {
+          ctaButton(label: "New round", icon: "plus.circle.fill")
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("startNewRoundButton")
       }
-      .buttonStyle(.plain)
-      .accessibilityIdentifier("resumeRoundButton")
     } else {
       NavigationLink {
         RoundSetupView()
@@ -108,80 +138,39 @@ struct HomeView: View {
     }
   }
 
-  private var secondaryCTA: some View {
-    NavigationLink {
-      RoundSetupView()
-    } label: {
-      Text("Start new round")
-        .font(.subheadline)
-        .fontWeight(.medium)
-        .foregroundStyle(.white.opacity(0.9))
-        .padding(.horizontal, 24)
-        .padding(.vertical, 14)
-        .overlay(
-          RoundedRectangle(cornerRadius: 12)
-            .strokeBorder(.white.opacity(0.5), lineWidth: 1)
-        )
-    }
-    .buttonStyle(.plain)
-    .accessibilityIdentifier("startNewRoundButton")
-  }
+  private enum CTAStyle { case primary, secondary }
 
-  private func ctaButton(label: String, icon: String) -> some View {
-    HStack(spacing: 10) {
+  /// Equal-width so a pair sits as a balanced row; single-line and scalable so
+  /// the longer label doesn't wrap at half width. Both styles share the same
+  /// metrics so the two sit level regardless of which is filled.
+  private func ctaButton(label: String, icon: String, style: CTAStyle = .primary) -> some View {
+    HStack(spacing: 8) {
       Image(systemName: icon)
-        .font(.title2)
+        .font(.title3)
       Text(label)
         .font(.headline)
         .fontWeight(.semibold)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
     .foregroundStyle(.white)
-    .padding(.horizontal, 32)
+    .frame(maxWidth: .infinity)
     .padding(.vertical, 18)
-    .background(Color.accentColor)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-  }
-
-  /// Secondary hub links: round history and stats. The pre-cinematic Home exposed
-  /// these as a toolbar icon and a recent-rounds list; the rebuild dropped both from
-  /// the home surface and buried them in Settings. Restoring them here keeps Home as
-  /// the navigation hub the v1 round-flow docs describe (Home -> Round history).
-  private var hubLinks: some View {
-    HStack(spacing: 16) {
-      NavigationLink {
-        RoundHistoryView()
-      } label: {
-        hubLink(label: "History", icon: "clock.arrow.circlepath")
+    .background {
+      switch style {
+      case .primary:
+        RoundedRectangle(cornerRadius: 14).fill(Color.accentColor)
+      case .secondary:
+        // Tinted rather than fully transparent: over a photograph a plain
+        // outline leaves white text sitting on whatever happens to be behind it.
+        RoundedRectangle(cornerRadius: 14)
+          .fill(.black.opacity(0.35))
+          .overlay(
+            RoundedRectangle(cornerRadius: 14)
+              .strokeBorder(.white.opacity(0.7), lineWidth: 1.5)
+          )
       }
-      .buttonStyle(.plain)
-      .accessibilityIdentifier("historyLink")
-
-      NavigationLink {
-        StatsDashboardView()
-      } label: {
-        hubLink(label: "Stats", icon: "chart.bar.fill")
-      }
-      .buttonStyle(.plain)
-      .accessibilityIdentifier("statsLink")
     }
-    .padding(.top, 4)
-  }
-
-  private func hubLink(label: String, icon: String) -> some View {
-    HStack(spacing: 6) {
-      Image(systemName: icon)
-        .font(.footnote)
-      Text(label)
-        .font(.subheadline)
-        .fontWeight(.medium)
-    }
-    .foregroundStyle(.white.opacity(0.9))
-    .padding(.horizontal, 18)
-    .padding(.vertical, 10)
-    .overlay(
-      Capsule()
-        .strokeBorder(.white.opacity(0.4), lineWidth: 1)
-    )
   }
 }
 

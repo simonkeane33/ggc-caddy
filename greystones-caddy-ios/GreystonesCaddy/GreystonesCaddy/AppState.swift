@@ -35,6 +35,10 @@ final class AppState: ObservableObject {
       Self.resetDatabaseIfRequested()
       #endif
 
+      // Give new installs a usable set of club yardages. No-ops once the
+      // player has entered any of their own.
+      try? GCDB.shared.seedDefaultBaselinesIfEmpty()
+
       // One-time import of high-accuracy GPS coordinates if needed
       if let csvURL = CourseLoader.bundle.url(forResource: "default", withExtension: "csv"),
          let csvContent = try? String(contentsOf: csvURL) {

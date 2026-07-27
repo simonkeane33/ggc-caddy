@@ -128,8 +128,11 @@ struct MainGameView: View {
               tee: tee,
               green: g,
               committedTarget: targetByHole[state.holeNumber] ?? midPoint(tee, g),
-              isZoomed: isZoomedIn || isTargetZoomActive,
-              ringYardages: [5, 10, 15, 20],
+              // Driven by the live camera distance alone, not the zoom button's
+              // flag: pinching back out after pressing the button left that flag
+              // set, so the rings lingered at wide zoom where they mean nothing.
+              isZoomed: isZoomedIn,
+              ringYardages: [5, 10, 15, 20, 30, 40],
               crosshairIdentifier: "mainTargetCrosshair",
               onCommit: { coord in
                 var updated = targetByHole
@@ -327,17 +330,12 @@ struct MainGameView: View {
   }
 
   private func headerOverlay(_ hole: CourseBundle.Hole?) -> some View {
-    HStack {
-      Button { dismiss() } label: {
-        Image(systemName: "chevron.left")
-          .font(.title3).bold()
-          .padding(10)
-          .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
-          .clipShape(Circle())
-          .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-          .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
-      }
-      
+    // The pill is centred in the viewport with the back button overlaid at the
+    // leading edge, rather than laid out in a row after it — in a plain HStack
+    // the button's width pushed the pill permanently off-centre. The horizontal
+    // padding on the pill keeps it clear of the button; if the content ever
+    // needs more room than that leaves, the columns scale down instead.
+    ZStack {
       if let hole {
         // Every label here is single-line and allowed to scale down. The
         // distance column previously used .fixedSize(), so an unexpectedly long
@@ -362,9 +360,21 @@ struct MainGameView: View {
         .clipShape(Capsule())
         .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 52)
       }
-      
-      Spacer()
+
+      HStack {
+        Button { dismiss() } label: {
+          Image(systemName: "chevron.left")
+            .font(.title3).bold()
+            .padding(10)
+            .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+        }
+        Spacer()
+      }
     }
     .padding(.horizontal)
     .padding(.top, 8)
@@ -651,21 +661,27 @@ struct MainGameView: View {
     VStack(alignment: .leading, spacing: 6) {
       Text("Hole \(state.holeNumber) shots")
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.white.opacity(0.8))
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
           ForEach(Array(events.enumerated()), id: \.element.id) { idx, e in
+            // Solid dark fill with white content, matching the other map
+            // overlays. These chips previously used .ultraThinMaterial with
+            // .secondary text, which over bright satellite imagery rendered as
+            // grey-on-grey and failed contrast badly.
             HStack(spacing: 6) {
               Text(e.kind == .shot ? "#\(idx + 1)" : "P")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
               Text(e.kind == .shot ? e.club.rawValue : "+\(e.penaltyStrokes ?? 1)")
                 .font(.subheadline.bold())
+                .foregroundStyle(.white)
               Button {
                 editEvent = e
               } label: {
                 Image(systemName: "pencil")
                   .font(.caption)
+                  .foregroundStyle(.white)
               }
               .buttonStyle(.plain)
               Button {
@@ -680,8 +696,9 @@ struct MainGameView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial)
+            .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95))
             .clipShape(Capsule())
+            .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
           }
         }
         .padding(.horizontal, 4)

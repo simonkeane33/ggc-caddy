@@ -31,6 +31,17 @@ final class GreystonesCaddyUITests: XCTestCase {
         }
     }
 
+    /// Home's History, Stats and Settings entries moved into the overflow menu,
+    /// so they have to be revealed before they can be tapped. Menu rows are
+    /// matched by title — accessibility identifiers on menu content are not
+    /// reliably exposed.
+    private func openHomeMenu(_ app: XCUIApplication, item: String) {
+        XCTAssertTrue(app.buttons["homeMenuButton"].waitForExistence(timeout: 5))
+        app.buttons["homeMenuButton"].tap()
+        XCTAssertTrue(app.buttons[item].waitForExistence(timeout: 5), "Menu item \(item) should appear")
+        app.buttons[item].tap()
+    }
+
     private func launchApp(resetDatabase: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         if resetDatabase {
@@ -45,16 +56,14 @@ final class GreystonesCaddyUITests: XCTestCase {
         let app = launchApp(resetDatabase: true)
 
         // History link navigates to Round History.
-        XCTAssertTrue(app.buttons["historyLink"].waitForExistence(timeout: 5))
-        app.buttons["historyLink"].tap()
+        openHomeMenu(app, item: "Round history")
 
         XCTAssertTrue(app.navigationBars["Round History"].waitForExistence(timeout: 5))
 
         // Go back and verify Stats link navigates to Stats Dashboard.
         app.navigationBars["Round History"].buttons.element(boundBy: 0).tap()
 
-        XCTAssertTrue(app.buttons["statsLink"].waitForExistence(timeout: 5))
-        app.buttons["statsLink"].tap()
+        openHomeMenu(app, item: "Stats")
 
         XCTAssertTrue(app.navigationBars["Stats Dashboard"].waitForExistence(timeout: 5))
     }
@@ -140,8 +149,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["startRoundButton"].waitForExistence(timeout: 5))
 
         // Round history shows the abandoned round.
-        XCTAssertTrue(app.buttons["historyLink"].waitForExistence(timeout: 5))
-        app.buttons["historyLink"].tap()
+        openHomeMenu(app, item: "Round history")
 
         XCTAssertTrue(app.navigationBars["Round History"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Abandoned"].waitForExistence(timeout: 5))
@@ -315,8 +323,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         // Open Stats Dashboard on a fresh launch.
         let statsApp = XCUIApplication()
         statsApp.launch()
-        XCTAssertTrue(statsApp.buttons["statsLink"].waitForExistence(timeout: 5))
-        statsApp.buttons["statsLink"].tap()
+        openHomeMenu(statsApp, item: "Stats")
         XCTAssertTrue(statsApp.navigationBars["Stats Dashboard"].waitForExistence(timeout: 5))
 
         // Only the completed round should be analyzed.
@@ -365,8 +372,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         // Relaunch and open History.
         let historyApp = XCUIApplication()
         historyApp.launch()
-        XCTAssertTrue(historyApp.buttons["historyLink"].waitForExistence(timeout: 5))
-        historyApp.buttons["historyLink"].tap()
+        openHomeMenu(historyApp, item: "Round history")
         XCTAssertTrue(historyApp.navigationBars["Round History"].waitForExistence(timeout: 5))
 
         // The completed round row should be present and tappable.
@@ -385,8 +391,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         let app = launchApp(resetDatabase: true)
 
         // Open Settings from Home.
-        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 5))
-        app.buttons["settingsButton"].tap()
+        openHomeMenu(app, item: "Settings")
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
         // Tap My Bag.
@@ -413,8 +418,7 @@ final class GreystonesCaddyUITests: XCTestCase {
     func testSettingsYardagesFlow() throws {
         let app = launchApp(resetDatabase: true)
 
-        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 5))
-        app.buttons["settingsButton"].tap()
+        openHomeMenu(app, item: "Settings")
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["settingsYardagesLink"].waitForExistence(timeout: 5))
@@ -524,8 +528,7 @@ final class GreystonesCaddyUITests: XCTestCase {
         // Relaunch and verify the completed round is counted in stats.
         let statsApp = XCUIApplication()
         statsApp.launch()
-        XCTAssertTrue(statsApp.buttons["statsLink"].waitForExistence(timeout: 5))
-        statsApp.buttons["statsLink"].tap()
+        openHomeMenu(statsApp, item: "Stats")
         XCTAssertTrue(statsApp.navigationBars["Stats Dashboard"].waitForExistence(timeout: 5))
 
         let roundsAnalyzed = statsApp.staticTexts["statsRoundsAnalyzed"]
