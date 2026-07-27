@@ -9,12 +9,26 @@ import XCTest
 
 final class GreystonesCaddyUITests: XCTestCase {
 
+    private var locationPermissionMonitor: NSObjectProtocol?
+
     override func setUpWithError() throws {
         continueAfterFailure = false
+
+        // Automatically grant location permission whenever the system alert appears.
+        locationPermissionMonitor = addUIInterruptionMonitor(withDescription: "Location permission") { alert in
+            let allowButton = alert.buttons["Allow While Using App"]
+            if allowButton.exists {
+                allowButton.tap()
+                return true
+            }
+            return false
+        }
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        if let monitor = locationPermissionMonitor {
+            removeUIInterruptionMonitor(monitor)
+        }
     }
 
     private func launchApp(resetDatabase: Bool = false) -> XCUIApplication {
@@ -528,5 +542,75 @@ final class GreystonesCaddyUITests: XCTestCase {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
+    }
+
+    @MainActor
+    func testAerialViewTargetDraggable() throws {
+        let app = launchApp(resetDatabase: true)
+
+        // Start a round.
+        XCTAssertTrue(app.buttons["startRoundButton"].waitForExistence(timeout: 5))
+        app.buttons["startRoundButton"].tap()
+        XCTAssertTrue(app.navigationBars["New Round"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["roundSetupStartButton"].waitForExistence(timeout: 5))
+        app.buttons["roundSetupStartButton"].tap()
+        XCTAssertTrue(app.buttons["mainScorecardButton"].waitForExistence(timeout: 5))
+
+        // Open Aerial View from the tools menu.
+        XCTAssertTrue(app.buttons["mainToolsMenu"].waitForExistence(timeout: 5))
+        app.buttons["mainToolsMenu"].tap()
+        XCTAssertTrue(app.buttons["Aerial View"].waitForExistence(timeout: 5))
+        app.buttons["Aerial View"].tap()
+
+        // Trigger the location-permission interruption monitor if the system
+        // alert is present. Tapping the navigation title is harmless once the
+        // alert is dismissed.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+
+        // Wait for the hole view, crosshair, and distance read-out to render.
+        XCTAssertTrue(app.navigationBars["Hole view"].waitForExistence(timeout: 5))
+        let crosshair = app.otherElements["aerialTargetCrosshair"]
+        XCTAssertTrue(crosshair.waitForExistence(timeout: 5), "Target crosshair should appear")
+        XCTAssertTrue(crosshair.isHittable, "Target crosshair should be on-screen and hittable")
+
+        let currentShotLabel = app.staticTexts["currentShotDistance"]
+        XCTAssertTrue(currentShotLabel.waitForExistence(timeout: 5), "Current-shot distance label should appear")
+        let beforeValue = currentShotLabel.label
+        XCTAssertFalse(beforeValue.isEmpty, "Current-shot distance should be loaded")
+
+        let beforeAttachment = XCTAttachment(screenshot: app.screenshot())
+        beforeAttachment.name = "Aerial View Before Drag"
+        beforeAttachment.lifetime = .keepAlways
+        add(beforeAttachment)
+
+        // Drag the crosshair upward to move the target toward the tee.
+        let beforeFrame = crosshair.frame
+        let crosshairCenter = crosshair.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let dragEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+        let dragEndPoint = dragEnd.screenPoint
+        crosshairCenter.press(forDuration: 0.2, thenDragTo: dragEnd)
+
+        // After the drag the current-shot distance should have changed.
+        sleep(1)
+        let afterValue = currentShotLabel.label
+
+        let afterAttachment = XCTAttachment(screenshot: app.screenshot())
+        afterAttachment.name = "Aerial View After Drag"
+        afterAttachment.lifetime = .keepAlways
+        add(afterAttachment)
+
+        XCTAssertNotEqual(afterValue, beforeValue, "Dragging the target should change the current-shot distance. Before: \(beforeValue), After: \(afterValue)")
+
+        // The crosshair must actually follow the finger: after release it should be
+        // centred on the release point, not offset by a coordinate-space mismatch
+        // between the drag surface and the rendered crosshair.
+        let afterFrame = crosshair.frame
+        let afterCenter = CGPoint(x: afterFrame.midX, y: afterFrame.midY)
+        XCTAssertNotEqual(beforeFrame.midY, afterFrame.midY, accuracy: 0.5,
+                          "Crosshair should have moved on screen")
+        XCTAssertEqual(afterCenter.x, dragEndPoint.x, accuracy: 12,
+                       "Crosshair should land horizontally on the release point. Landed \(afterCenter), released \(dragEndPoint)")
+        XCTAssertEqual(afterCenter.y, dragEndPoint.y, accuracy: 12,
+                       "Crosshair should land vertically on the release point. Landed \(afterCenter), released \(dragEndPoint)")
     }
 }

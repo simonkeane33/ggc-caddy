@@ -24,135 +24,192 @@ struct HoleAerialView: View {
   @State private var setGreenMode: Bool = false
   @State private var selectedDistance: (meters: Double, label: String)? = nil
   @State private var isZoomedOnTarget: Bool = false
+  @State private var dragTarget: CLLocationCoordinate2D? = nil
+  @State private var mapInteractionEnabled: Bool = true
+  /// Bumped on every camera change so the guide lines and crosshair, which are
+  /// projected through the MapProxy, re-render as the map pans and zooms.
   @State private var renderToken = UUID()
 
-  @State private var showDragDebug = true
-
   var body: some View {
-    MapReader { proxy in
-      Map(position: $camera) {
-        UserAnnotation()
+    ZStack {
+      MapReader { proxy in
+        ZStack {
+          Map(position: $camera, interactionModes: mapInteractionEnabled ? .all : []) {
+          UserAnnotation()
 
-        if let g = greenCenter {
-          Annotation("Green Center", coordinate: g) {
-            VStack(spacing: 4) {
-              Image(systemName: "flag.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.green)
-              if let d = greenDistanceYd {
-                Text("\(d) yd")
-                  .font(.caption)
-                  .padding(.horizontal, 8)
-                  .padding(.vertical, 4)
-                  .background(.thinMaterial)
-                  .clipShape(Capsule())
+          if let g = greenCenter {
+            Annotation("Green Center", coordinate: g) {
+              VStack(spacing: 4) {
+                Image(systemName: "flag.circle.fill")
+                  .font(.title2)
+                  .foregroundStyle(.green)
+                if let d = greenDistanceYd {
+                  Text("\(d) yd")
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
+                }
               }
             }
           }
-        }
 
-        if let tee = teeLocation {
+          if let f = greenFront {
+            Annotation("Front", coordinate: f) {
+              Circle()
+                .fill(.green.opacity(0.6))
+                .frame(width: 12, height: 12)
+            }
+          }
+
+          if let b = greenBack {
+            Annotation("Back", coordinate: b) {
+              Circle()
+                .fill(.green.opacity(0.6))
+                .frame(width: 12, height: 12)
+            }
+          }
+
+          if !greenPerimeter.isEmpty {
+            MapPolygon(coordinates: greenPerimeter)
+              .stroke(.green.opacity(0.8), lineWidth: 2)
+              .foregroundStyle(.green.opacity(0.2))
+          }
+
+          if let tee = teeLocation {
             Annotation("Tee", coordinate: tee) {
-                Image(systemName: "circle.fill")
-                    .foregroundStyle(.white)
-                    .overlay(Circle().stroke(.black, lineWidth: 1))
-            }
-        }
-        
-        if let f = greenFront {
-          Annotation("Front", coordinate: f) {
-            Circle()
-              .fill(.green.opacity(0.6))
-              .frame(width: 12, height: 12)
-          }
-        }
-        
-        if let b = greenBack {
-          Annotation("Back", coordinate: b) {
-            Circle()
-              .fill(.green.opacity(0.6))
-              .frame(width: 12, height: 12)
-          }
-        }
-
-        if !greenPerimeter.isEmpty {
-          MapPolygon(coordinates: greenPerimeter)
-            .stroke(.green.opacity(0.8), lineWidth: 2)
-            .foregroundStyle(.green.opacity(0.2))
-        }
-        
-        if let tee = teeLocation {
-          Annotation("Tee", coordinate: tee) {
-            Image(systemName: "circle.circle.fill")
-              .foregroundStyle(state.tee == .blue ? .blue : (state.tee == .green ? .green : .red))
-              .background(Circle().fill(.white))
-          }
-        }
-
-        if let t = target {
-          Annotation("Target", coordinate: t) {
-            VStack(spacing: 4) {
-              Image(systemName: "mappin.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.red)
-              if let d = targetDistanceYd {
-                Text("\(d) yd")
-                  .font(.caption)
-                  .padding(.horizontal, 8)
-                  .padding(.vertical, 4)
-                  .background(.thinMaterial)
-                  .clipShape(Capsule())
-              }
+              Image(systemName: "circle.circle.fill")
+                .foregroundStyle(state.tee == .blue ? .blue : (state.tee == .green ? .green : .red))
+                .background(Circle().fill(.white))
             }
           }
         }
-      }
-      .mapStyle(.imagery)
-      .ignoresSafeArea(edges: .bottom)
-      .navigationTitle("Hole view")
-      .navigationBarTitleDisplayMode(.inline)
-      .onMapCameraChange(frequency: .continuous) { _ in
-        renderToken = UUID()
-      }
-      .overlay(alignment: .topLeading) {
+        .mapStyle(.imagery)
+        .ignoresSafeArea(edges: .bottom)
+        .navigationTitle("Hole view")
+        .navigationBarTitleDisplayMode(.inline)
+        .onMapCameraChange(frequency: .continuous) { _ in
+          renderToken = UUID()
+        }
+
         if let tee = teeLocation, let g = greenCenter {
+          let committedTarget = target ?? midPoint(tee, g)
+          let activeTarget = dragTarget ?? committedTarget
+
+          // Lines/rings: full-screen overlay that is purely visual and never blocks touches.
           LineGuideOverlay(
             proxy: proxy,
             tee: tee,
-            target: target ?? midPoint(tee, g),
+            target: activeTarget,
             green: g,
-            isZoomed: isZoomedOnTarget,
-            showDebug: showDragDebug,
-            onCommit: { coord in
-              target = coord
-              recomputeDistances()
-              withAnimation { isZoomedOnTarget = false }
-              snapToUser()
-            }
+            isZoomed: isZoomedOnTarget
           )
+
+          // Draggable target crosshair. This *must* be a sibling of the guide
+          // overlay inside the same ZStack and positioned with the proxy's
+          // `.local` space: `.position` resolves against the parent's local
+          // coordinates, so positioning with `.global` points would render the
+          // crosshair offset from the lines by the status/nav bar height.
+          if let crosshairPoint = proxy.convert(activeTarget, to: .local) {
+            // Clear catch area behind the crosshair visual. Map interactions are
+            // disabled while dragging so the Map pan gesture does not compete.
+            // The catch area is only 240×240 pts so the rest of the map stays
+            // fully interactive.
+            Color.clear
+              .contentShape(Rectangle())
+              .frame(width: 240, height: 240)
+              .position(crosshairPoint)
+              .gesture(
+                // The drag reads `.global` points and converts them back through
+                // the same proxy, so the committed coordinate lands exactly under
+                // the finger regardless of where the overlay sits on screen.
+                DragGesture(coordinateSpace: .global)
+                  .onChanged { value in
+                    mapInteractionEnabled = false
+                    if let coord = proxy.convert(value.location, from: .global) {
+                      dragTarget = coord
+                    }
+                  }
+                  .onEnded { value in
+                    if let coord = proxy.convert(value.location, from: .global) {
+                      target = coord
+                      recomputeDistances()
+                    }
+                    dragTarget = nil
+                    mapInteractionEnabled = true
+                  }
+              )
+
+            // Crosshair visual sits on top but does not intercept touches.
+            TargetCrosshair(isZoomed: isZoomedOnTarget)
+              .frame(width: 160, height: 160)
+              .position(crosshairPoint)
+              .accessibilityIdentifier("aerialTargetCrosshair")
+              .allowsHitTesting(false)
+          }
         }
       }
-      .overlay(alignment: .top) {
-          if let tee = teeLocation, let g = greenCenter {
-              let t = target ?? midPoint(tee, g)
-              let distToTarget = distanceYards(from: tee, to: t)
-              let distTargetToGreen = distanceYards(from: t, to: g)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .safeAreaInset(edge: .bottom) {
+        if let g = greenCenter, let tee = teeLocation {
+            let activeTarget = dragTarget ?? target ?? midPoint(tee, g)
+            let distToTarget = distanceYards(from: tee, to: activeTarget)
+            let distTargetToGreen = distanceYards(from: activeTarget, to: g)
 
-              HStack(spacing: 20) {
-                  Button {
-                      selectedDistance = (meters: Double(distToTarget) / 1.09361, label: "TO TARGET")
-                  } label: {
-                      distancePill(label: "TO TARGET", value: "\(distToTarget)", color: .white)
-                  }
-                  .buttonStyle(.plain)
+            HStack(spacing: 0) {
+                Button {
+                    selectedDistance = (meters: Double(distToTarget) / 1.09361, label: "Current Shot")
+                } label: {
+                    VStack(spacing: 2) {
+                        Text("Current Shot").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
+                        Text("\(distToTarget)y").font(.title3).bold().foregroundStyle(.white)
+                            .accessibilityIdentifier("currentShotDistance")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
 
-                  Button {
-                      selectedDistance = (meters: Double(distTargetToGreen) / 1.09361, label: "TO GREEN")
-                  } label: {
-                      distancePill(label: "TO GREEN", value: "\(distTargetToGreen)", color: .yellow)
+                // A Divider inside an HStack is greedy vertically, and safeAreaInset
+                // proposes the full container height to its content. Without an
+                // explicit height the whole panel — and its material background —
+                // expands to cover the entire map.
+                Divider()
+                  .frame(height: 34)
+                  .background(.white.opacity(0.3))
+
+                Button {
+                    selectedDistance = (meters: Double(distTargetToGreen) / 1.09361, label: "To Green")
+                } label: {
+                    VStack(spacing: 2) {
+                        Text("To Green").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
+                        Text("\(distTargetToGreen)y").font(.title3).bold().foregroundStyle(.yellow)
+                            .accessibilityIdentifier("toGreenDistance")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 10)
+            .padding(.bottom, 18) // home indicator
+            .background(.thinMaterial)
+        }
+      }
+      .overlay(alignment: .bottom) {
+          if let g = greenCenter, let tee = teeLocation {
+              HStack {
+                  Button(action: { isZoomedOnTarget.toggle() }) {
+                      Image(systemName: isZoomedOnTarget ? "minus.magnifyingglass" : "plus.magnifyingglass")
+                          .padding(10)
+                          .background(.ultraThinMaterial)
+                          .clipShape(Circle())
                   }
-                  .buttonStyle(.plain)
+
+                  Spacer()
               }
+              .padding(.horizontal)
+              .padding(.bottom, 86)
           }
       }
       .sheet(item: Binding(
@@ -166,55 +223,6 @@ struct HoleAerialView: View {
           )
           .presentationDetents([.large])
       }
-      .safeAreaInset(edge: .bottom) {
-        if let g = greenCenter, let tee = teeLocation {
-            let activeTarget = target ?? midPoint(tee, g)
-            let distToTarget = distanceYards(from: tee, to: activeTarget)
-            let distTargetToGreen = distanceYards(from: activeTarget, to: g)
-            
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    VStack {
-                        Text("Current Shot").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
-                        Text("\(distToTarget)y").font(.title2).bold().foregroundStyle(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Divider().background(.white.opacity(0.3)).padding(.vertical, 10)
-                    
-                    VStack {
-                        Text("To Green").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
-                        Text("\(distTargetToGreen)y").font(.title3).bold().foregroundStyle(.yellow)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.top, 5)
-                .padding(.bottom, 30) // Extra padding for home indicator
-                .background(.black.opacity(0.8))
-                
-                // Bottom Action Row (Floating above the dark bar)
-                HStack {
-                    Button(action: { isZoomedOnTarget.toggle() }) {
-                        Image(systemName: isZoomedOnTarget ? "minus.magnifyingglass" : "plus.magnifyingglass")
-                            .padding(12)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-                    
-                    Spacer()
-                    
-                    Button("Set green") {
-                      setGreenMode.toggle()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .controlSize(.small)
-                }
-                .padding(.horizontal)
-                .offset(y: -75) // Move buttons up so they don't block the bar
-            }
-        }
-      }
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button(setGreenMode ? "Done" : "Set green") {
@@ -222,16 +230,9 @@ struct HoleAerialView: View {
           }
         }
       }
-      .overlay(alignment: .bottomTrailing) {
-        if !setGreenMode {
-          Button("Debug") {
-            showDragDebug.toggle()
-          }
-          .padding()
-          .buttonStyle(.borderedProminent)
-          .tint(.orange)
-        }
-      }
+      // Tapping the map sets a target (or the green centre in setGreenMode).
+      // Touches that land on the crosshair's catch area are consumed there instead,
+      // so a tap never fights with a drag.
       .onTapGesture { point in
         guard let coord = proxy.convert(point, from: .local) else { return }
 
@@ -266,6 +267,7 @@ struct HoleAerialView: View {
       }
     }
   }
+}
 
   private func snapToUser() {
     if let g = greenCenter, let tee = teeLocation {
@@ -375,109 +377,48 @@ struct HoleAerialView: View {
   }
 }
 
-private struct TargetCrosshair: View {
-    let isZoomed: Bool
-    var body: some View {
-        ZStack {
-            Circle()
-                .strokeBorder(.white, lineWidth: isZoomed ? 3 : 2)
-                .background(Circle().fill(.black.opacity(0.3)))
-                .frame(width: isZoomed ? 60 : 44, height: isZoomed ? 60 : 44)
-
-            Rectangle().fill(.white).frame(width: isZoomed ? 30 : 20, height: 1)
-            Rectangle().fill(.white).frame(width: 1, height: isZoomed ? 30 : 20)
-            Circle().fill(.white).frame(width: 4, height: 4)
-        }
-    }
-}
-
-/// Synchronous "as the crow flies" guide lines, distance rings, and draggable target
-/// crosshair drawn as a SwiftUI overlay directly on the map. MapKit's MapPolyline/
-/// MapCircle overlays redraw on a separate thread and lag behind the draggable
-/// crosshair. More importantly, moving a MapKit Annotation coordinate during a drag
-/// causes its own internal animation, which also looks like lag. This overlay keeps
-/// the moving target entirely in SwiftUI screen space and only reports the final
-/// coordinate back to the parent on drag release.
+/// Synchronous "as the crow flies" guide lines and distance rings drawn as a
+/// SwiftUI overlay directly on the map. MapKit's MapPolyline/MapCircle overlays
+/// redraw on a separate thread and lag behind a moving target. Keeping these
+/// lines in SwiftUI screen space avoids that lag. This overlay never intercepts
+/// touches so the map underneath remains fully interactive.
 private struct LineGuideOverlay: View {
     let proxy: MapProxy
     let tee: CLLocationCoordinate2D
     let target: CLLocationCoordinate2D
     let green: CLLocationCoordinate2D
     let isZoomed: Bool
-    let showDebug: Bool
-    let onCommit: (CLLocationCoordinate2D) -> Void
-
-    /// Live crosshair position during a drag; only this property mutates so the
-    /// parent Map body does not recompute.
-    @State private var dragPoint: CGPoint? = nil
-    /// Crosshair position at the start of the drag, used to compute smooth translation.
-    @State private var dragStartPoint: CGPoint? = nil
 
     var body: some View {
         GeometryReader { geo in
             let teePoint = proxy.convert(tee, to: .local) ?? .zero
             let targetPoint = proxy.convert(target, to: .local) ?? .zero
             let greenPoint = proxy.convert(green, to: .local) ?? .zero
-            let crosshairPoint = dragPoint ?? targetPoint
-            let activeTargetCoord = dragPoint.flatMap { proxy.convert($0, from: .local) } ?? target
 
             ZStack {
-                // Lines follow either the committed target or the live drag point.
-                LineShape(from: teePoint, to: crosshairPoint)
+                LineShape(from: teePoint, to: targetPoint)
                     .stroke(.white.opacity(0.8), lineWidth: 2)
+                    .allowsHitTesting(false)
 
-                LineShape(from: crosshairPoint, to: greenPoint)
+                LineShape(from: targetPoint, to: greenPoint)
                     .stroke(.white.opacity(0.8), lineWidth: 2)
+                    .allowsHitTesting(false)
 
                 if isZoomed {
                     ForEach([20.0, 40.0, 60.0], id: \.self) { yards in
                         Circle()
                             .stroke(.white.opacity(0.3), lineWidth: 1)
                             .frame(
-                                width: ringDiameter(yards: yards, center: activeTargetCoord),
-                                height: ringDiameter(yards: yards, center: activeTargetCoord)
+                                width: ringDiameter(yards: yards, center: target),
+                                height: ringDiameter(yards: yards, center: target)
                             )
-                            .position(crosshairPoint)
+                            .position(targetPoint)
+                            .allowsHitTesting(false)
                     }
                 }
-
-                DebugMarkers(
-                    teePoint: teePoint,
-                    targetPoint: targetPoint,
-                    greenPoint: greenPoint,
-                    crosshairPoint: crosshairPoint,
-                    dragPoint: dragPoint
-                )
-
-                // Draggable target crosshair rendered in screen space.
-                TargetCrosshair(isZoomed: isZoomed)
-                    .position(crosshairPoint)
-                    .highPriorityGesture(
-                        DragGesture(coordinateSpace: .global)
-                            .onChanged { value in
-                                if dragStartPoint == nil {
-                                    dragStartPoint = crosshairPoint
-                                }
-                                guard let start = dragStartPoint else { return }
-                                dragPoint = CGPoint(
-                                    x: start.x + value.translation.width,
-                                    y: start.y + value.translation.height
-                                )
-                            }
-                            .onEnded { value in
-                                guard let start = dragStartPoint else { return }
-                                let finalPoint = CGPoint(
-                                    x: start.x + value.translation.width,
-                                    y: start.y + value.translation.height
-                                )
-                                dragPoint = nil
-                                dragStartPoint = nil
-                                if let coord = proxy.convert(finalPoint, from: .local) {
-                                    onCommit(coord)
-                                }
-                            }
-                    )
             }
+            .background(Color.clear)
+            .allowsHitTesting(false)
             .frame(width: geo.size.width, height: geo.size.height)
         }
     }
@@ -500,44 +441,31 @@ private struct LineGuideOverlay: View {
     }
 }
 
-private struct DebugMarkers: View {
-    let teePoint: CGPoint
-    let targetPoint: CGPoint
-    let greenPoint: CGPoint
-    let crosshairPoint: CGPoint
-    let dragPoint: CGPoint?
-
+/// The on-screen target crosshair. Kept as a separate reusable view so it can
+/// live inside a SwiftUI overlay that sits *outside* the MapReader and is
+/// therefore never clipped by it.
+private struct TargetCrosshair: View {
+    let isZoomed: Bool
     var body: some View {
         ZStack {
-            // Reference points projected from the committed coordinates.
-            marker(at: teePoint, color: .blue, label: "T")
-            marker(at: greenPoint, color: .yellow, label: "G")
-            marker(at: targetPoint, color: .purple, label: "tgt")
-
-            // Live drag touch point vs. the crosshair the lines currently use.
-            if let dp = dragPoint {
-                // Connector between raw touch and crosshair so any gap is visible.
-                LineShape(from: dp, to: crosshairPoint)
-                    .stroke(.red.opacity(0.8), lineWidth: 2)
-                marker(at: dp, color: .red, label: "drag")
-            }
-            marker(at: crosshairPoint, color: .green, label: "cross")
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func marker(at point: CGPoint, color: Color, label: String) -> some View {
-        ZStack {
+            // Dark backing so it stands out against both dark and light satellite imagery.
             Circle()
-                .fill(color)
-                .frame(width: 12, height: 12)
-                .overlay(Circle().stroke(.white, lineWidth: 1))
-            Text(label)
-                .font(.caption2.bold())
-                .foregroundStyle(.white)
-                .offset(y: -18)
+                .fill(.black.opacity(0.7))
+                .frame(width: isZoomed ? 96 : 80, height: isZoomed ? 96 : 80)
+                .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 0)
+
+            Circle()
+                .stroke(.white, lineWidth: 3)
+                .frame(width: isZoomed ? 96 : 80, height: isZoomed ? 96 : 80)
+
+            Circle()
+                .stroke(.white, lineWidth: 1)
+                .frame(width: isZoomed ? 56 : 48, height: isZoomed ? 56 : 48)
+
+            Rectangle().fill(.white).frame(width: isZoomed ? 40 : 34, height: 2)
+            Rectangle().fill(.white).frame(width: 2, height: isZoomed ? 40 : 34)
+            Circle().fill(.white).frame(width: 8, height: 8)
         }
-        .position(point)
     }
 }
 
