@@ -64,6 +64,15 @@ public struct CourseBundle: Codable, Sendable {
 public enum DistanceUnit: String, Codable, CaseIterable, Sendable {
   case metres
   case yards
+
+  /// Format a distance stored in metres in this unit, with a unit suffix —
+  /// e.g. `389y` (yards) or `356m` (metres). Truncated to whole units.
+  public func format(_ metres: Double) -> String {
+    switch self {
+    case .yards: return "\(Int(Distance.metresToYards(metres)))y"
+    case .metres: return "\(Int(metres))m"
+    }
+  }
 }
 
 public enum Distance {

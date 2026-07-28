@@ -500,12 +500,30 @@ struct MainGameView: View {
     .fixedSize(horizontal: false, vertical: true)
   }
 
+  /// A compact inline distance stat for the per-bunker list rows — a small
+  /// secondary label ("Front" / "Carry") with a bold yardage next to it. Reads
+  /// at a glance on a trolley mount.
+  private func inlineDistanceStat(_ title: String, metres: Double) -> some View {
+    HStack(spacing: 3) {
+      Text(title)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+      Text(state.unit.format(metres))
+        .font(.subheadline.bold())
+    }
+    .monospacedDigit()
+  }
+
   private func headerOverlay(_ hole: CourseBundle.Hole?) -> some View {
     // The pill is centred in the viewport with the back button overlaid at the
     // leading edge, rather than laid out in a row after it — in a plain HStack
     // the button's width pushed the pill permanently off-centre. The horizontal
     // padding on the pill keeps it clear of the button; if the content ever
     // needs more room than that leaves, the columns scale down instead.
+    //
+    // Hole metadata only (number / par / tee / HC). Live distance readouts — to
+    // the green centre and per-bunker front/carry — live in `distanceListCard`,
+    // which sits at the bottom of the screen above the hole selector.
     ZStack {
       if let hole {
         // Every label here is single-line and allowed to scale down. The
@@ -520,15 +538,10 @@ struct MainGameView: View {
           }
           .onTapGesture { showHolePicker = true }
 
-          headerStat("Mid Green", "\(Int(Distance.metresToYards(greenDistanceMeters)))Yds")
-          // Carry to the front of the nearest bunker on the line of play, from
-          // the player's current fix. Only when the hole has bunker data and a
-          // position fix — omitted otherwise so unprocessed holes stay clean.
-          if nearestBunkerFrontDistanceMeters > 0 {
-            headerStat("Bunker", "\(Int(Distance.metresToYards(nearestBunkerFrontDistanceMeters)))Yds")
-          }
           headerStat("Par", "\(hole.par[state.tee])")
-          headerStat(state.tee.rawValue.capitalized, "\(hole.distance_m[state.tee])")
+          // Tee distance is stored in metres; format per the round's selected
+          // unit so the pill states yards vs metres explicitly (e.g. "Yellow 389y").
+          headerStat(state.tee.rawValue.capitalized, state.unit.format(Double(hole.distance_m[state.tee])))
           headerStat("HC", "\(Int(state.course.holes[hole.number-1].si[state.tee]))")
         }
         .padding(.horizontal, 16)
@@ -567,6 +580,46 @@ struct MainGameView: View {
     .padding(.horizontal)
     .padding(.top, 8)
     .foregroundColor(.white)
+  }
+
+  /// Live distance read-outs: Mid Green (to the green centre) plus one row per
+  /// bunker ahead on the line of play, each with "Front" (to reach / lay up)
+  /// and "Carry" (to fly over the back edge), measured from the player's
+  /// current GPS fix. Placed above the bottom hole selector so the yardages sit
+  /// at the bottom of the screen — glanceable on a trolley mount while walking.
+  /// Rows only appear when their data exists; the whole card is hidden when
+  /// there's nothing to show, so unprocessed holes (no bunker asset / no fix)
+  /// stay clean.
+  private var distanceListCard: some View {
+    VStack(spacing: 8) {
+      if loc.lastLocation != nil && greenCenter != nil {
+        HStack {
+          Text("Mid Green")
+            .font(.subheadline.weight(.semibold))
+          Spacer()
+          Text(state.unit.format(greenDistanceMeters))
+            .font(.subheadline.bold())
+            .monospacedDigit()
+        }
+      }
+      ForEach(bunkerRows.indices, id: \.self) { i in
+        let row = bunkerRows[i]
+        HStack {
+          Text("Bunker \(row.index)")
+            .font(.subheadline.weight(.semibold))
+          Spacer()
+          inlineDistanceStat("Front", metres: row.frontMeters)
+          inlineDistanceStat("Carry", metres: row.backMeters)
+        }
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 8)
+    .frame(maxWidth: .infinity)
+    .background(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.9))
+    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+    .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
   }
 
   private func targetDistanceTags(tee: CLLocationCoordinate2D, target: CLLocationCoordinate2D, green: CLLocationCoordinate2D) -> some View {
@@ -636,6 +689,14 @@ struct MainGameView: View {
           .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
       }
       
+      // Live distance read-outs (Mid Green + per-bunker Front/Carry), above the
+      // hole selector at the bottom of the screen — see `distanceListCard`.
+      // Hidden when there's nothing to show (no fix / no bunker asset).
+      if hasDistanceReadout {
+        distanceListCard
+          .padding(.horizontal)
+      }
+
       // Primary Hole Selector — spans the full width now that the Scorecard
       // and Tools wings have moved into the right-side button group.
       HStack {
@@ -754,13 +815,25 @@ struct MainGameView: View {
       return midPoint(tee, green)
   }
 
-  /// Carry from the player's current fix to the front of the nearest bunker on
-  /// the line of play. `0` when there's no relevant bunker or no position fix —
-  /// the header stat is omitted in that case (see `headerOverlay`).
-  private var nearestBunkerFrontDistanceMeters: Double {
+  /// Per-bunker yardages for bunkers ahead of the player on the line of play,
+  /// sorted near→far. Each row is the front (to reach / lay up) and back (to
+  /// carry over) straight-line distance from the player's current GPS fix to
+  /// that bunker's near/far edges. Empty when the hole has no bunker data, no
+  /// position fix, or no bunkers ahead — the strip is hidden in those cases.
+  private var bunkerRows: [(index: Int, frontMeters: Double, backMeters: Double)] {
       guard let l = loc.lastLocation, let g = greenCenter,
-            let front = holeFeatures?.nearestBunkerFront(tee: l.coordinate, green: g) else { return 0 }
-      return distanceMeters(from: l.coordinate, to: front)
+            let ahead = holeFeatures?.bunkersAhead(player: l.coordinate, green: g) else { return [] }
+      return ahead.enumerated().map { (i, b) in
+          (index: i + 1,
+           frontMeters: distanceMeters(from: l.coordinate, to: b.front),
+           backMeters: distanceMeters(from: l.coordinate, to: b.back))
+      }
+  }
+
+  /// Whether the distance strip beneath the header pill has anything to show.
+  /// Drives whether the strip renders at all — no readout, no second pill.
+  private var hasDistanceReadout: Bool {
+      (loc.lastLocation != nil && greenCenter != nil) || !bunkerRows.isEmpty
   }
 
   // MARK: - Hole framing (hole-map-framing-and-target-behaviour)

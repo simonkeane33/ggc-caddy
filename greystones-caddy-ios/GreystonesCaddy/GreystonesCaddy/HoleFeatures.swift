@@ -102,22 +102,28 @@ struct HoleFeatures {
 
     // MARK: - Bunkers
 
-    /// The bunker whose front edge is reached first along the line of play —
-    /// the one a carry read-out is most useful for. Returns `nil` when there
-    /// are no bunkers ahead of the tee.
-    func nearestBunkerFront(tee: CLLocationCoordinate2D, green: CLLocationCoordinate2D) -> CLLocationCoordinate2D? {
-        guard !bunkers.isEmpty else { return nil }
-        var best: CLLocationCoordinate2D? = nil
-        var bestTrack = Double.infinity
+    /// Bunkers still ahead of the player along the line of play (player→green),
+    /// each with its near edge (`front` — the point the ball reaches first, the
+    /// lay-up / "to reach" yardage) and far edge (`back` — the point the ball
+    /// leaves last, the carry-over yardage). Sorted near→far along the line.
+    /// Bunkers the player has already passed (front behind the player's
+    /// along-track position, i.e. negative track) are excluded. Empty when the
+    /// hole has no bunkers.
+    ///
+    /// The line origin is the **player**, not the tee — so "ahead" adapts as the
+    /// golfer walks, and the front/back edges are relative to the current shot
+    /// line, not the original tee shot.
+    func bunkersAhead(player: CLLocationCoordinate2D, green: CLLocationCoordinate2D) -> [BunkerOnLine] {
+        guard !bunkers.isEmpty else { return [] }
+        let bearingPlayerToGreen = bearing(player, green)
+        var entries: [(track: Double, edges: BunkerOnLine)] = []
         for bunker in bunkers {
-            let edges = bunkerEdges(bunker, tee: tee, green: green)
-            let track = alongTrack(from: tee, to: edges.front, bearingTeeToGreen: bearing(tee, green))
-            if track > 0 && track < bestTrack {
-                bestTrack = track
-                best = edges.front
-            }
+            let edges = bunkerEdges(bunker, tee: player, green: green)
+            let track = alongTrack(from: player, to: edges.front, bearingTeeToGreen: bearingPlayerToGreen)
+            guard track > 0 else { continue }
+            entries.append((track, BunkerOnLine(front: edges.front, back: edges.back)))
         }
-        return best
+        return entries.sorted { $0.track < $1.track }.map(\.edges)
     }
 }
 
@@ -193,6 +199,14 @@ struct BunkerEdges {
     let front: CLLocationCoordinate2D   // near edge along tee→green
     let middle: CLLocationCoordinate2D  // centroid
     let back: CLLocationCoordinate2D    // far edge along tee→green
+}
+
+/// A bunker's near and far edge points along the player's current line of play
+/// to the green — the two distances a glanceable read-out cares about (to reach
+/// vs to carry over).
+struct BunkerOnLine {
+    let front: CLLocationCoordinate2D
+    let back: CLLocationCoordinate2D
 }
 
 /// Bunker front/middle/back from its perimeter: project each vertex onto the
