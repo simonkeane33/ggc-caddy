@@ -734,6 +734,13 @@ struct MainGameView: View {
   /// Overlay-safe: tee and green must stay clear of top/bottom overlays. Refined after live testing.
   private static let overlaySafeSpanMultiplier: Double = 2.0
   private static let cameraDistanceMultiplier: Double = 3.0
+  /// The outer distance ring `TargetGuideOverlay` draws when zoomed in. The
+  /// target-zoom shot is framed around this ring so it sits with comfortable
+  /// margin rather than cropped against the edge. Ported from the abandoned
+  /// HoleAerialView drag-target-zoom branch, which sized the zoomed span from
+  /// real-world metres (the old fixed span was too tight and ignored longitude
+  /// compression at this latitude).
+  private static let targetZoomRingYards: Double = 20
 
   /// The tee-green overview shot: computed independently of `lastFramedHole`
   /// so `toggleTargetZoom` can jump straight back to it without being blocked
@@ -785,9 +792,15 @@ struct MainGameView: View {
       withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
           if isTargetZoomActive {
               let activeTarget = targetByHole[state.holeNumber] ?? midPoint(tee, g)
+              // Frame the 20-yard ring around the target. Size the camera
+              // distance from the ring diameter via the same multiplier the
+              // overview shot uses, so the ring reads with the same comfortable
+              // framing rather than a tight, arbitrary altitude.
+              let ringDiameterMeters = Self.targetZoomRingYards * 0.9144 * 2
+              let zoomDistance = ringDiameterMeters * Self.cameraDistanceMultiplier
               camera = .camera(MapCamera(
                   centerCoordinate: activeTarget,
-                  distance: 40,
+                  distance: zoomDistance,
                   heading: camera.camera?.heading ?? 0,
                   pitch: 0
               ))
