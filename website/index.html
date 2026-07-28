@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClubCaddy — A club-branded course app for your members</title>
+  <meta name="description" content="ClubCaddy is a live GPS course app, branded for your golf club and kept fresh for your members. From €250/year, updates included. Built by the team behind Greystones Caddy." />
+  <meta property="og:title" content="ClubCaddy — Your club. Your app." />
+  <meta property="og:description" content="A club-branded GPS course app for your members, mapped, branded and maintained for you. From €250/year." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f4d2e'/%3E%3Cpath d='M16 6v14' stroke='%23e8d9a0' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M16 7l9 3-9 3z' fill='%23e8d9a0'/%3E%3Cellipse cx='16' cy='23' rx='5' ry='2.4' fill='%23e8d9a0'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <a class="skip" href="#pricing">Skip to pricing</a>
+
+  <!-- ───────────── NAV ───────────── -->
+  <header class="nav" id="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="ClubCaddy home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M16 6v14" stroke="#e8d9a0" stroke-width="2" stroke-linecap="round"/><path d="M16 7l9 3-9 3z" fill="#e8d9a0"/><ellipse cx="16" cy="23" rx="5" ry="2.4" fill="#e8d9a0"/></svg>
+        <span class="brand-name">ClubCaddy</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#case">Greystones</a>
+        <a href="#gallery">Screens</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#premium">Premium</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-ghost" href="#contact">Book a demo</a>
+        <a class="btn btn-primary" href="#pricing">Start your club</a>
+        <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu" hidden>
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#case">Greystones</a>
+      <a href="#gallery">Screens</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#premium">Premium</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn btn-primary" href="#contact">Book a demo</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ───────────── HERO ───────────── -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Club-branded course apps for golf clubs</p>
+          <h1 class="display">Give every member the caddy your course deserves.</h1>
+          <p class="lead">
+            ClubCaddy is a live GPS course app — branded for your club, mapped to
+            your fairways, bunkers and greens, and kept fresh for your members.
+            We built it for Greystones. Now it’s ready for yours.
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="#pricing">Start with Bronze — €250/yr</a>
+            <a class="btn btn-ghost btn-lg" href="#contact">Book a demo</a>
+          </div>
+          <ul class="hero-bullets">
+            <li>All updates &amp; new features included</li>
+            <li>No setup fee — cancel anytime</li>
+            <li>Members download free</li>
+          </ul>
+        </div>
+
+        <!-- Real app screenshot in an iPhone frame (drop img/hero-game.png) -->
+        <div class="phone-wrap">
+          <div class="device-stack">
+            <img class="device-back device-back-left" src="img/shot-course.png" alt="" width="1170" height="2532" loading="lazy" aria-hidden="true" />
+            <img class="device-back device-back-right" src="img/shot-approach.png" alt="" width="1170" height="2532" loading="lazy" aria-hidden="true" />
+            <div class="device">
+              <div class="device-frame">
+                <img class="device-shot"
+                     src="img/hero-home.png"
+                     alt="ClubCaddy home screen branded for Greystones Golf Club, with weather and the option to resume or start a new round"
+                     width="1170" height="2532" loading="eager"
+                     onerror="this.style.display='none';this.parentElement.classList.add('shot-pending')" />
+              </div>
+            </div>
+          </div>
+          <p class="phone-caption">Your club’s colours. Your crest. Your course.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── PROOF STRIP ───────────── -->
+    <section class="proof">
+      <div class="container proof-inner">
+        <p class="proof-label">Live in members’ hands at</p>
+        <p class="proof-name">Greystones Golf Club</p>
+        <p class="proof-detail">18 holes mapped · 3D green terrain · fairway &amp; bunker data · wind-adjusted yardages</p>
+      </div>
+    </section>
+
+    <!-- ───────────── PROBLEM / PITCH ───────────── -->
+    <section class="pitch">
+      <div class="container pitch-inner">
+        <p class="eyebrow center">Why your club</p>
+        <h2 class="display center">Your members carry a yardage book.<br />Their phones carry everything else.</h2>
+        <p class="lead center">
+          A folded card can’t show the carry to clear that bunker, the slope of
+          the green, or the wind-adjusted yardage to the pin. ClubCaddy puts all
+          of it — branded as your club — in every member’s pocket, and keeps it
+          accurate when your course changes.
+        </p>
+      </div>
+    </section>
+
+    <!-- ───────────── FEATURES ───────────── -->
+    <section class="features" id="features">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">What members get</p>
+          <h2 class="display center">A real caddy, not a distance app.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">⛳</div>
+            <h3>Live GPS yardages</h3>
+            <p>To the green, front / middle / back, measured from wherever your member stands — updated as they walk.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">🎯</div>
+            <h3>Fairway-aware aim</h3>
+            <p>The default target lands on your fairway — the end of the landing zone — not a blind tee-to-green midpoint.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">🏜️</div>
+            <h3>Bunker front &amp; carry</h3>
+            <p>Every bunker on the line of play, with a lay-up number and a carry-to-clear number. No more guessing.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">🏔️</div>
+            <h3>3D green terrain</h3>
+            <p>Read the slopes, tiers and run-off areas of your putting surfaces before the approach lands.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">🌬️</div>
+            <h3>Plays-like &amp; wind</h3>
+            <p>Yardages adjusted for wind and elevation, so the number on screen is the number to hit.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">📈</div>
+            <h3>Shot tracking &amp; stats</h3>
+            <p>Per-round, per-hole, per-club tracking — fairways hit, GIR, putting — with a full scorecard and round history.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">📝</div>
+            <h3>Hole notes</h3>
+            <p>Members keep their own notes per hole; the club can publish course notes and local rules.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true">🧭</div>
+            <h3>Follow-me map</h3>
+            <p>An aerial that tracks the player as they walk, holding orientation, so the phone works mounted on a trolley.</p>
+          </article>
+        </div>
+        <p class="feature-more">Plus yards-or-metres, a compass that resets to north-up, round insights, and a scorecard your members will actually use.</p>
+      </div>
+    </section>
+
+    <!-- ───────────── HOW IT WORKS ───────────── -->
+    <section class="how" id="how">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">How it works</p>
+          <h2 class="display center">You don’t lift a finger. We map, brand, and ship.</h2>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <h3>We map your course</h3>
+            <p>Fairways, bunkers, greens and 3D terrain, captured through our Google Earth &amp; QGIS pipeline. Send us your tees and a crest — we handle the rest.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <h3>We brand the app</h3>
+            <p>Your colours, your crest, your course name and tee names. ClubCaddy becomes <em>your</em> club’s app, not a shared directory.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <h3>Your members download</h3>
+            <p>From the App Store, under your club’s name. Updates, new features and course re-maps land automatically — included, always.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ───────────── INCLUDED BAND ───────────── -->
+    <section class="included">
+      <div class="container included-inner">
+        <h2 class="display">Every ClubCaddy plan includes</h2>
+        <ul class="included-list">
+          <li><b>All updates &amp; new features</b> — the app improves every season, at no extra cost.</li>
+          <li><b>Hosting &amp; App Store presence</b> — we keep it live and listed.</li>
+          <li><b>Course re-mapping</b> — when your course changes, we update the data.</li>
+          <li><b>Email support</b> — for your committee and your members.</li>
+          <li><b>No setup fee</b> — and no lock-in. Cancel anytime.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ───────────── CASE STUDY ───────────── -->
+    <section class="case" id="case">
+      <div class="container case-grid">
+        <div class="case-copy">
+          <p class="eyebrow">Showcase</p>
+          <h2 class="display">Greystones Golf Club</h2>
+          <p class="lead">
+            ClubCaddy was built at Greystones — and dog-foods every round. Every
+            fairway, bunker and green is mapped to the metre, the 3D green
+            terrain reads the actual slopes, and the wind-adjusted yardages are
+            the ones members trust over the card.
+          </p>
+          <ul class="case-stats">
+            <li><b>18</b><span>holes mapped</span></li>
+            <li><b>3D</b><span>green terrain</span></li>
+            <li><b>Front &amp; Carry</b><span>per bunker</span></li>
+            <li><b>Free</b><span>for members</span></li>
+          </ul>
+        </div>
+        <figure class="case-quote">
+          <blockquote>
+            “It’s the first app our members actually open on the first tee. The
+            carry-to-clear on the bunkers alone has changed how the course
+            plays.”
+          </blockquote>
+          <figcaption>— Greystones member &amp; ClubCaddy tester</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ───────────── SCREENSHOT GALLERY ───────────── -->
+    <section class="gallery" id="gallery">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">See it on the course</p>
+          <h2 class="display center">Every screen your members will actually use.</h2>
+        </div>
+        <div class="gallery-grid">
+          <figure class="shot">
+            <img src="img/shot-course.png" alt="In-game aerial view on a hole — hole/par/tee/HC pill, crosshair with plays-like yardages, and the bottom distance card" width="1170" height="2532" loading="lazy"
+                 onerror="this.style.display='none';this.closest('figure').classList.add('shot-pending')" />
+            <figcaption>In-game aerial view</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="img/shot-approach.png" alt="Close-up approach view to the green with plays-like yardages and the target line" width="1170" height="2532" loading="lazy"
+                 onerror="this.style.display='none';this.closest('figure').classList.add('shot-pending')" />
+            <figcaption>Approach to the green</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="img/shot-green3d.png" alt="3D green terrain view showing the slopes and tiers of the putting surface" width="1170" height="2532" loading="lazy"
+                 onerror="this.style.display='none';this.closest('figure').classList.add('shot-pending')" />
+            <figcaption>3D green terrain</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── PRICING ───────────── -->
+    <section class="pricing" id="pricing">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">Pricing</p>
+          <h2 class="display center">The app is the core. Add what your club needs.</h2>
+          <p class="lead center">Annual or monthly. No setup fee. Members always download free.</p>
+        </div>
+
+        <div class="billing-toggle" role="tablist" aria-label="Billing period">
+          <button class="billing-btn is-active" data-billing="annual" role="tab" aria-selected="true">Annual <span class="save">save ~17%</span></button>
+          <button class="billing-btn" data-billing="monthly" role="tab" aria-selected="false">Monthly</button>
+        </div>
+
+        <div class="tier-grid">
+          <!-- Bronze -->
+          <article class="tier">
+            <header class="tier-head">
+              <h3>Bronze</h3>
+              <p class="tier-sub">The club app</p>
+              <p class="price"><span class="price-amount" data-annual="€250" data-monthly="€25">€250</span><span class="price-period" data-annual="/yr" data-monthly="/mo">/yr</span></p>
+              <p class="price-note" data-annual="or €25/month" data-monthly="billed monthly">or €25/month</p>
+              <a class="btn btn-outline btn-block" href="#contact">Start Bronze</a>
+            </header>
+            <ul class="tier-features">
+              <li>Branded club app (one 18-hole course)</li>
+              <li>Live GPS yardages</li>
+              <li>Fairway-aware aim &amp; bunker front/carry</li>
+              <li>3D green terrain</li>
+              <li>Plays-like &amp; wind</li>
+              <li>Shot tracking, scorecard &amp; stats</li>
+              <li>Hole notes</li>
+              <li>All updates, hosting &amp; support</li>
+            </ul>
+          </article>
+
+          <!-- Silver (popular) -->
+          <article class="tier tier-popular">
+            <span class="tier-badge">Most popular</span>
+            <header class="tier-head">
+              <h3>Silver</h3>
+              <p class="tier-sub">App + club website</p>
+              <p class="price"><span class="price-amount" data-annual="€490" data-monthly="€49">€490</span><span class="price-period" data-annual="/yr" data-monthly="/mo">/yr</span></p>
+              <p class="price-note" data-annual="or €49/month" data-monthly="billed monthly">or €49/month</p>
+              <a class="btn btn-primary btn-block" href="#contact">Start Silver</a>
+            </header>
+            <ul class="tier-features">
+              <li><b>Everything in Bronze</b></li>
+              <li>A modern club marketing website</li>
+              <li>Kept in sync with the app</li>
+              <li>Hosted &amp; maintained for you</li>
+              <li>Your domain &amp; branding</li>
+              <li>All updates, hosting &amp; support</li>
+            </ul>
+          </article>
+
+          <!-- Gold -->
+          <article class="tier">
+            <header class="tier-head">
+              <h3>Gold</h3>
+              <p class="tier-sub">App + website + premium</p>
+              <p class="price"><span class="price-amount" data-annual="€990" data-monthly="€99">€990</span><span class="price-period" data-annual="/yr" data-monthly="/mo">/yr</span></p>
+              <p class="price-note" data-annual="or €99/month" data-monthly="billed monthly">or €99/month</p>
+              <a class="btn btn-outline btn-block" href="#contact">Start Gold</a>
+            </header>
+            <ul class="tier-features">
+              <li><b>Everything in Silver</b></li>
+              <li>Multi-course support</li>
+              <li>Custom feature development</li>
+              <li>Member analytics dashboard</li>
+              <li>Priority support</li>
+              <li>Dedicated launch manager</li>
+            </ul>
+          </article>
+        </div>
+        <p class="pricing-foot">Not sure which fits? <a href="#contact">Book a 20-minute demo</a> and we’ll map it to your club.</p>
+      </div>
+    </section>
+
+    <!-- ───────────── PREMIUM / BESPOKE ───────────── -->
+    <section class="premium" id="premium">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">Premium &amp; custom builds</p>
+          <h2 class="display center">Take your course further — in the sim, on the web, and across every hole.</h2>
+          <p class="lead center">The base app already uses LiDAR-grade 3D for the greens. These are major, per-club projects that extend that across the whole course and beyond the phone. Priced on application — tell us the finish you want and we’ll scope it.</p>
+        </div>
+
+        <div class="premium-grid">
+          <article class="premium-card">
+            <div class="premium-icon" aria-hidden="true">🛰️</div>
+            <div class="premium-head">
+              <h3>High-resolution LiDAR terrain</h3>
+              <span class="poa">POA</span>
+            </div>
+            <p>We commission drone-captured LiDAR of your entire course and feed it back into the app — centimetre-accurate fairway, green and approach contours, and a true-to-life 3D read across every hole. The same pipeline that powers ClubCaddy’s 3D greens, taken course-wide.</p>
+          </article>
+
+          <article class="premium-card">
+            <div class="premium-icon" aria-hidden="true">🏌️</div>
+            <div class="premium-head">
+              <h3>GSPro simulator build</h3>
+              <span class="poa">POA</span>
+            </div>
+            <p>A photo-real, fully playable GSPro build of your course. Members play your holes year-round — on the club’s simulator or their own at home. Every bunker, ridge and green rendered from your real course data.</p>
+          </article>
+
+          <article class="premium-card">
+            <div class="premium-icon" aria-hidden="true">🌐</div>
+            <div class="premium-head">
+              <h3>Browser 3D course explorer</h3>
+              <span class="poa">POA</span>
+            </div>
+            <p>A 3D fly-through of your course in the browser — for the club website, prospective members, and tournament previews. Read the landing zones and the green from any angle, no app required.</p>
+          </article>
+
+          <article class="premium-card">
+            <div class="premium-icon" aria-hidden="true">📡</div>
+            <div class="premium-head">
+              <h3>Live competition tracking</h3>
+              <span class="poa">POA</span>
+            </div>
+            <p>See where every player is on the course, in real time, during a competition — on the clubhouse screen and in the committee’s hands. Live leaderboards, pace-of-play, and a live map of the field.</p>
+          </article>
+        </div>
+
+        <div class="premium-cta">
+          <p>These are bespoke projects, scoped and priced per club.</p>
+          <a class="btn btn-sand btn-lg" href="mailto:hello@clubcaddy.ie?subject=ClubCaddy%20premium%20build%20for%20our%20club">Book a scoping call</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── FAQ ───────────── -->
+    <section class="faq" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow center">FAQ</p>
+          <h2 class="display center">What clubs ask before they start.</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>How long does it take to launch?</summary>
+            <p>Roughly two to four weeks from course data to a live App Store listing. Most of that is mapping and Apple review; branding is fast once we have your crest and colours.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What do we need to provide?</summary>
+            <p>Your club crest and brand colours, your tee names, and either your tee/green coordinates or permission for us to map them. We handle the fairway, bunker and green mapping ourselves.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Is it really our own app?</summary>
+            <p>Yes. It’s branded with your colours and crest, listed under your club’s name, and your members install it as your app — not a shared course directory.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Who owns the course data?</summary>
+            <p>Your club owns your course data. We capture and maintain it for you, and we’ll hand it over if you ever leave.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What if our course changes?</summary>
+            <p>We re-map the affected holes and push an update. Course changes are included in every plan — that’s the point of a subscription.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Can we add features specific to our club?</summary>
+            <p>Gold includes custom feature development. Bronze and Silver clubs can request features, which join the shared roadmap and ship to everyone in an update.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Do members pay to use it?</summary>
+            <p>No. The club subscribes; members download and use it free. It’s a member benefit your club provides.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What’s the contract?</summary>
+            <p>Annual or monthly — your choice. No setup fee, no lock-in; cancel anytime and the app stays live to the end of the paid period.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What are the premium builds — LiDAR, GSPro, 3D explorer, live tracking?</summary>
+            <p>Bespoke, per-club projects on top of the subscription: drone-captured LiDAR terrain across the whole course, a photo-real playable GSPro simulator build of your course, a browser-based 3D course explorer, and live competition tracking. Each is a major build, scoped and priced on application — see the Premium section.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── CTA ───────────── -->
+    <section class="cta" id="contact">
+      <div class="container cta-inner">
+        <h2 class="display">Ready to give your members a caddy?</h2>
+        <p class="lead">Book a 20-minute demo and we’ll show you ClubCaddy on Greystones — then sketch what it looks like for your club.</p>
+        <div class="cta-actions">
+          <a class="btn btn-sand btn-lg" href="mailto:hello@clubcaddy.ie?subject=ClubCaddy%20demo%20for%20our%20club">Email hello@clubcaddy.ie</a>
+          <a class="btn btn-outline-light btn-lg" href="#pricing">See pricing</a>
+        </div>
+        <p class="cta-note">Prefer a call? Reply to the email with your club name and a good time.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ───────────── FOOTER ───────────── -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="ClubCaddy home">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M16 6v14" stroke="#e8d9a0" stroke-width="2" stroke-linecap="round"/><path d="M16 7l9 3-9 3z" fill="#e8d9a0"/><ellipse cx="16" cy="23" rx="5" ry="2.4" fill="#e8d9a0"/></svg>
+          <span class="brand-name">ClubCaddy</span>
+        </a>
+        <p class="footer-tag">Your club. Your app.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#case">Greystones</a>
+        <a href="#gallery">Screens</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#premium">Premium</a>
+        <a href="#faq">FAQ</a>
+        <a href="mailto:hello@clubcaddy.ie">Contact</a>
+      </nav>
+      <p class="footer-meta">
+        Built by the team behind Greystones Caddy.<br />
+        © <span id="year">2026</span> ClubCaddy. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
