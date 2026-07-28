@@ -636,7 +636,7 @@ struct MainGameView: View {
           selectedDistance = (meters: meters, label: label, bearing: bearing)
       } label: {
           HStack(spacing: 0) {
-              Text("\(Int(Distance.metresToYards(meters)))y")
+              Text(state.unit.format(meters))
                   .font(.system(size: 16, weight: .heavy))
                   .padding(.horizontal, 12)
                   .padding(.vertical, 8)
@@ -649,7 +649,7 @@ struct MainGameView: View {
                       Text("PLAYS LIKE")
                           .font(.system(size: 8, weight: .regular))
                           .foregroundColor(Color(white: 0.4))
-                      Text("\(Int(Distance.metresToYards(meters * 1.05)))y")
+                      Text(state.unit.format(meters * 1.05))
                           .font(.system(size: 16, weight: .bold))
                           .foregroundColor(.black)
                   }
