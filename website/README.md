@@ -1,6 +1,6 @@
 # ClubCaddy Marketing Website
 
-Static marketing site for ClubCaddy — the club-branded GPS course app built for golf clubs.
+Static marketing site for ClubCaddy - the club-branded GPS course app built for golf clubs.
 
 **Live URL:** https://website-rho-two-29.vercel.app  
 **Project root:** `ggc-caddy/website`  
@@ -39,7 +39,7 @@ website/
 - **Single page, section scroll.** All content lives in `index.html`. Navigation links anchor to sections (`#features`, `#pricing`, etc.).
 - **Device-stack hero.** The hero shows three iPhone screenshots: a branded home screen in front, with two in-game aerial shots behind it to imply depth and product breadth.
 - **Phone frames are CSS masks, not images.** Screenshots are real PNGs at their native aspect ratio; the rounded phone frame is applied via `border-radius` and `overflow: hidden`.
-- **Screenshot aspect ratio:** 1170 × 2532 (iPhone screenshot native). Containers do not force aspect ratio — images render at their natural size and the parent clips them.
+- **Screenshot aspect ratio:** 1170 × 2532 (iPhone screenshot native). Containers do not force aspect ratio - images render at their natural size and the parent clips them.
 - **Gallery section:** Three screenshots showing aerial view, approach view and 3D green terrain.
 - **Pricing toggle:** Annual/monthly toggle in the pricing section. Prices are hardcoded in HTML and toggled via `data-annual` / `data-monthly` attributes in `script.js`.
 - **Static deployment on Vercel.** No build step. Root directory is `ggc-caddy/website`.
@@ -99,4 +99,4 @@ vercel --prod --cwd /Users/simonkeane/ggc-caddy/website
 
 - The site is currently light on interactivity by design. Future versions may add a contact form, demo booking calendar, or live competition-tracking preview.
 - Premium section is descriptive only; pricing is POA.
-- Branding copy is currently generic/ClubCaddy — can be customised per-club if we ever build white-label landing pages.
+- Branding copy is currently generic/ClubCaddy - can be customised per-club if we ever build white-label landing pages.

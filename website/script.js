@@ -1,4 +1,4 @@
-// ClubCaddy — marketing site interactions
+// ClubCaddy - marketing site interactions
 (function () {
   "use strict";
 

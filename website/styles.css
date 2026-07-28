@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   ClubCaddy — marketing site styles
+   ClubCaddy - marketing site styles
    Palette: course green, bright green, sand/gold, off-white, near-black
    ───────────────────────────────────────────────────────────── */
 
@@ -190,7 +190,7 @@ a { color: inherit; text-decoration: none; }
   background: #0b1410;
 }
 .device-frame.shot-pending::after {
-  content: "Screenshot pending — drop img/hero-home.png";
+  content: "Screenshot pending - drop img/hero-home.png";
   position: absolute; inset: 0; border-radius: 22px;
   display: grid; place-items: center; text-align: center; padding: 1.5rem;
   color: rgba(255,255,255,0.5); font-size: 0.85rem; font-style: italic;

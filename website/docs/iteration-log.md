@@ -1,10 +1,10 @@
-# ClubCaddy Website — Iteration Log
+# ClubCaddy Website - Iteration Log
 
 A running record of changes, decisions and feedback so future iterations don’t lose context.
 
 ---
 
-## 2026-07-28 — Initial build & first deploy
+## 2026-07-28 - Initial build & first deploy
 
 ### What was done
 - Created static marketing site in `ggc-caddy/website`.
@@ -52,4 +52,4 @@ After each round of changes or feedback, add a dated section with:
 - Assets affected
 - Open questions
 
-Keep it short and factual — future-you will thank present-you.
+Keep it short and factual - future-you will thank present-you.
