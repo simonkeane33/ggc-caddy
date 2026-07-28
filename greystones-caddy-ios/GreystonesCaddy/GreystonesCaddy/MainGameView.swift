@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import UIKit
 import GreystonesCaddyCore
 
 struct MainGameView: View {
@@ -27,6 +28,24 @@ struct MainGameView: View {
   /// aerial map rotates (tee→green points up), so the wind arrow must subtract
   /// this to read correctly against the rotated map.
   @State private var cameraHeading: Double = 0
+  /// True while the camera should re-centre on the player as they walk.
+  /// Off by default — the resting view frames the hole (tee→green), and
+  /// follow-me is a toggle the golfer switches on to track themselves. While
+  /// following, the map holds the heading the user had when they enabled it
+  /// (hole-up by default, but a compass reset to north-up is respected too),
+  /// so the target overlay still reads correctly. Panning the map cancels
+  /// follow so it stops fighting the user; rotating or zooming while staying
+  /// centred is allowed and adopted into the follow state.
+  @State private var followingUser: Bool = false
+  /// The heading held while `followingUser` is on. Captured from
+  /// `cameraHeading` when follow is enabled and updated if the user rotates
+  /// during follow (their rotation is respected, only a pan cancels follow).
+  @State private var followHeading: Double = 0
+  /// Shown when the golfer taps follow-me with location access denied, to
+  /// route them to Settings. (`UserAnnotation` and follow both need auth;
+  /// `MainGameView` otherwise relies on the round/shot-logging flow having
+  /// already obtained it, so this is the explicit denial surface.)
+  @State private var showLocationDeniedAlert = false
   /// True once the user has pinched in noticeably closer than the initial
   /// hole-framing shot. Drives the finer distance rings and the enlarged
   /// crosshair, matching the aerial view's manual zoom toggle but driven by
@@ -180,6 +199,19 @@ struct MainGameView: View {
             drag.cameraDidChange()
             cameraDistance = context.camera.distance
             cameraHeading = context.camera.heading
+            // Follow-me bookkeeping. Our own re-centre writes the user's
+            // coordinate back as the camera centre, so it reads as ~0 m away
+            // here; a real user pan moves the centre off the user and cancels
+            // follow so we stop fighting them. While they stay centred, their
+            // rotation and zoom are adopted into the follow state.
+            if followingUser, let user = loc.lastLocation?.coordinate {
+              let metresAway = distanceMeters(from: context.camera.centerCoordinate, to: user)
+              if metresAway > 20 {
+                followingUser = false
+              } else {
+                followHeading = context.camera.heading
+              }
+            }
           }
 
           // The target line and crosshair are drawn in SwiftUI screen space
@@ -274,6 +306,21 @@ struct MainGameView: View {
           }
 
           toolButton(icon: isTargetZoomActive ? "minus.magnifyingglass" : "plus.magnifyingglass", label: "", action: toggleTargetZoom)
+
+          // Follow-me / locate. Tapping enables follow: the map re-centres on
+          // the player and tracks them as they walk, holding the current
+          // heading. Tapping again (or panning the map) cancels follow. The
+          // filled location glyph + accent background signal the active state.
+          Button(action: toggleFollowUser) {
+            toolButtonLabel(
+              icon: followingUser ? "location.fill" : "location",
+              label: followingUser ? "Following" : "Locate",
+              background: followingUser
+                ? Color.accentColor.opacity(0.9)
+                : Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.95)
+            )
+          }
+          .accessibilityIdentifier("mainFollowButton")
           // Opens the per-hole note editor. HoleNotesView was already complete
           // and reads/writes through GCDB — it just had no entry point.
           NavigationLink {
@@ -326,6 +373,10 @@ struct MainGameView: View {
     }
     .navigationBarHidden(true)
     .onAppear {
+      // UserAnnotation and follow-me both need location auth. The round /
+      // shot-logging flow usually obtained it already, but request here too
+      // so the blue dot shows on a fresh entry to this screen.
+      if loc.authorization == .notDetermined { loc.requestWhenInUse() }
       refreshStats()
       loadGreenCenter()
       applyHoleFramingIfNeeded()
@@ -341,8 +392,33 @@ struct MainGameView: View {
       loadGreenCenter()
     }
     .onChange(of: state.holeNumber) { _, _ in
+      // Framing takes over on a hole change — stop following so the camera
+      // can re-frame tee→green without being pulled back to the player.
+      followingUser = false
       loadGreenCenter()
       applyHoleFramingIfNeeded()
+    }
+    // While following, every new fix re-centres the map on the player. Not
+    // animated: a per-step animation on each 5 m update reads as lag; the
+    // initial enable is animated via `recenterOnUser` for a smooth pan.
+    .onChange(of: loc.lastLocation) { _, newLocation in
+      guard followingUser, let c = newLocation?.coordinate else { return }
+      camera = .camera(MapCamera(
+        centerCoordinate: c,
+        distance: cameraDistance > 0 ? cameraDistance : framingDistance,
+        heading: followHeading,
+        pitch: 0
+      ))
+    }
+    .alert("Location needed", isPresented: $showLocationDeniedAlert) {
+      Button("Open Settings") {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+          UIApplication.shared.open(url)
+        }
+      }
+      Button("Not now", role: .cancel) {}
+    } message: {
+      Text("Follow-me needs location access to show your position on the map. Enable it in Settings.")
     }
     .sheet(isPresented: $showHolePicker) {
       HolePickerSheet(currentHole: state.holeNumber, course: state.course) { hn in
@@ -730,6 +806,44 @@ struct MainGameView: View {
               centerCoordinate: cam.centerCoordinate,
               distance: cam.distance,
               heading: 0,
+              pitch: 0
+          ))
+      }
+  }
+
+  /// Toggles follow-me. Enabling captures the current heading (so the map
+  /// stays oriented the way it is — hole-up, or north-up after a compass reset)
+  /// and re-centres on the player once for a smooth pan; subsequent fixes
+  /// re-centre via `onChange(loc.lastLocation)`. Disabling just flips the flag.
+  /// Handles the auth states explicitly: not-determined prompts, denied routes
+  /// to Settings via `showLocationDeniedAlert`.
+  private func toggleFollowUser() {
+      if followingUser {
+          followingUser = false
+          return
+      }
+      switch loc.authorization {
+      case .notDetermined:
+          loc.requestWhenInUse()
+      case .denied, .restricted:
+          showLocationDeniedAlert = true
+      default:
+          followingUser = true
+          followHeading = cameraHeading
+          recenterOnUser()
+      }
+  }
+
+  /// Centres the map on the player's current fix, keeping the follow heading
+  /// and the live zoom. Animated so the initial enable reads as a smooth pan
+  /// rather than a jump.
+  private func recenterOnUser() {
+      guard let c = loc.lastLocation?.coordinate else { return }
+      withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
+          camera = .camera(MapCamera(
+              centerCoordinate: c,
+              distance: cameraDistance > 0 ? cameraDistance : framingDistance,
+              heading: followHeading,
               pitch: 0
           ))
       }
