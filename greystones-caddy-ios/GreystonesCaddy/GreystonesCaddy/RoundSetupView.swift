@@ -35,6 +35,7 @@ struct RoundSetupView: View {
           Text("Red").tag(TeeID.red)
         }
         .pickerStyle(.segmented)
+        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
       }
 
       Section("Units") {
@@ -43,6 +44,7 @@ struct RoundSetupView: View {
           Text("Metres").tag(DistanceUnit.metres)
         }
         .pickerStyle(.segmented)
+        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
       }
 
       Section("Format") {
