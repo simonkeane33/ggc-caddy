@@ -280,16 +280,32 @@ a { color: inherit; text-decoration: none; }
 .simulator { padding: clamp(3rem, 6vw, 5rem) 0; background: var(--green-800); color: var(--white); }
 .simulator .eyebrow { color: var(--sand); }
 .simulator .display { color: var(--white); }
-.simulator .lead { color: rgba(255,255,255,0.85); margin-bottom: 1.25rem; }
-.simulator-grid {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 3rem;
-  align-items: center;
+.simulator .lead { color: rgba(255,255,255,0.85); }
+.simulator .lead a { color: var(--sand); text-decoration: underline; text-underline-offset: 3px; }
+.simulator .lead a:hover { color: #f0e4b8; }
+.simulator-hero { max-width: 1200px; }
+.simulator-hero-head { max-width: 52rem; margin: 0 auto 2rem; text-align: center; }
+.simulator-hero-head .display { margin: 0.5rem 0 1rem; }
+.simulator-hero-shot { margin: 0; }
+.simulator-hero-shot img {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: var(--shadow);
 }
-.simulator-copy .btn-primary { margin-top: 1rem; }
+.simulator-hero-shot figcaption {
+  margin-top: 0.75rem; font-size: 0.9rem; color: rgba(255,255,255,0.7); text-align: center;
+}
+.simulator-hero-body {
+  max-width: 52rem;
+  margin: 2rem auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
+  align-items: center;
+  justify-content: center;
+}
 .simulator-bullets {
-  list-style: none; padding: 0; margin: 0 0 1.5rem;
+  list-style: none; padding: 0; margin: 0;
   display: grid; gap: 0.5rem;
 }
 .simulator-bullets li {
@@ -297,18 +313,8 @@ a { color: inherit; text-decoration: none; }
   position: relative; padding-left: 1.5rem;
 }
 .simulator-bullets li::before { content: "✓"; position: absolute; left: 0; color: var(--sand); font-weight: 700; }
-.simulator-shot { margin: 0; }
-.simulator-shot img {
-  width: 100%; height: auto; display: block;
-  border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: var(--shadow);
-}
-.simulator-shot figcaption {
-  margin-top: 0.75rem; font-size: 0.9rem; color: rgba(255,255,255,0.7); text-align: center;
-}
-@media (max-width: 900px) {
-  .simulator-grid { grid-template-columns: 1fr; gap: 2rem; }
-  .simulator-shot { order: -1; }
+@media (max-width: 720px) {
+  .simulator-hero-body { flex-direction: column; align-items: stretch; }
 }
 
 /* ── Premium / bespoke builds ── */
