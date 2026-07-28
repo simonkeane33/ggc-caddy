@@ -76,6 +76,11 @@ struct MainGameView: View {
   @State private var selectedDistance: (meters: Double, label: String, bearing: Double?)? = nil
   @State private var showAbandonConfirm = false
   @State private var greenCenter: CLLocationCoordinate2D? = nil
+  /// Per-hole fairway + bunker polygons from the bundled `H{NN}_features.geojson`
+  /// asset. Nil when the hole has no asset yet — the app then keeps its existing
+  /// tee↔green midpoint default and shows no bunker carry. Static course geometry,
+  /// so a reload on hole change is enough.
+  @State private var holeFeatures: HoleFeatures? = nil
   /// Live conditions for the wind read-out. Nil until the first fetch lands, or
   /// if it fails — the button shows "—" rather than inventing a figure.
   @State private var weather: WeatherConditions? = nil
@@ -226,7 +231,7 @@ struct MainGameView: View {
               drag: drag,
               tee: tee,
               green: g,
-              committedTarget: targetByHole[state.holeNumber] ?? midPoint(tee, g),
+              committedTarget: targetByHole[state.holeNumber] ?? defaultTarget(tee: tee, green: g),
               // Driven by the live camera distance alone, not the zoom button's
               // flag: pinching back out after pressing the button left that flag
               // set, so the rings lingered at wide zoom where they mean nothing.
@@ -379,6 +384,7 @@ struct MainGameView: View {
       if loc.authorization == .notDetermined { loc.requestWhenInUse() }
       refreshStats()
       loadGreenCenter()
+      loadHoleFeatures()
       applyHoleFramingIfNeeded()
     }
     .task {
@@ -396,6 +402,7 @@ struct MainGameView: View {
       // can re-frame tee→green without being pulled back to the player.
       followingUser = false
       loadGreenCenter()
+      loadHoleFeatures()
       applyHoleFramingIfNeeded()
     }
     // While following, every new fix re-centres the map on the player. Not
@@ -514,6 +521,12 @@ struct MainGameView: View {
           .onTapGesture { showHolePicker = true }
 
           headerStat("Mid Green", "\(Int(Distance.metresToYards(greenDistanceMeters)))Yds")
+          // Carry to the front of the nearest bunker on the line of play, from
+          // the player's current fix. Only when the hole has bunker data and a
+          // position fix — omitted otherwise so unprocessed holes stay clean.
+          if nearestBunkerFrontDistanceMeters > 0 {
+            headerStat("Bunker", "\(Int(Distance.metresToYards(nearestBunkerFrontDistanceMeters)))Yds")
+          }
           headerStat("Par", "\(hole.par[state.tee])")
           headerStat(state.tee.rawValue.capitalized, "\(hole.distance_m[state.tee])")
           headerStat("HC", "\(Int(state.course.holes[hole.number-1].si[state.tee]))")
@@ -727,6 +740,29 @@ struct MainGameView: View {
       CLLocationCoordinate2D(latitude: (c1.latitude + c2.latitude) / 2, longitude: (c1.longitude + c2.longitude) / 2)
   }
 
+  private func loadHoleFeatures() {
+      holeFeatures = HoleFeatures.load(hole: state.holeNumber)
+  }
+
+  /// The default target for the current hole. Prefers a fairway landing spot
+  /// (far edge of the fairway along the line of play) when the hole has
+  /// fairway data; otherwise the tee↔green midpoint, as before.
+  private func defaultTarget(tee: CLLocationCoordinate2D, green: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
+      if let f = holeFeatures, let p = f.defaultTarget(tee: tee, green: green) {
+          return p
+      }
+      return midPoint(tee, green)
+  }
+
+  /// Carry from the player's current fix to the front of the nearest bunker on
+  /// the line of play. `0` when there's no relevant bunker or no position fix —
+  /// the header stat is omitted in that case (see `headerOverlay`).
+  private var nearestBunkerFrontDistanceMeters: Double {
+      guard let l = loc.lastLocation, let g = greenCenter,
+            let front = holeFeatures?.nearestBunkerFront(tee: l.coordinate, green: g) else { return 0 }
+      return distanceMeters(from: l.coordinate, to: front)
+  }
+
   // MARK: - Hole framing (hole-map-framing-and-target-behaviour)
   // v1: Tee + green center anchors; MapCamera with heading; overlay-safe padding; animated.
   // Apply only on round start and hole change — not when returning to same hole.
@@ -791,7 +827,7 @@ struct MainGameView: View {
       isTargetZoomActive.toggle()
       withAnimation(.easeInOut(duration: Self.framingAnimationDuration)) {
           if isTargetZoomActive {
-              let activeTarget = targetByHole[state.holeNumber] ?? midPoint(tee, g)
+              let activeTarget = targetByHole[state.holeNumber] ?? defaultTarget(tee: tee, green: g)
               // Frame the 20-yard ring around the target. Size the camera
               // distance from the ring diameter via the same multiplier the
               // overview shot uses, so the ring reads with the same comfortable
