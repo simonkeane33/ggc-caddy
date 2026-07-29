@@ -101,34 +101,6 @@ a { color: inherit; text-decoration: none; }
 }
 .skip:focus { left: 0; }
 
-/* ── Promo banner ── */
-.promo-banner {
-  background: var(--sand);
-  color: var(--green-900);
-  padding: 0.35rem 0;
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-.promo-banner-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem 1rem;
-  text-align: center;
-}
-.promo-banner-inner a {
-  color: var(--green-700);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  white-space: nowrap;
-}
-.promo-banner-inner a:hover { color: var(--green-800); }
-@media (max-width: 560px) {
-  .promo-banner-inner { flex-direction: column; gap: 0.25rem; }
-}
-
 /* ── Nav ── */
 .nav {
   position: sticky; top: 0; z-index: 50;
