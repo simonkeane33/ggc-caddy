@@ -526,6 +526,15 @@ a { color: inherit; text-decoration: none; }
   .mobile-menu:not([hidden]) { display: flex; }
   .feature-grid { grid-template-columns: 1fr; }
   .case-stats { grid-template-columns: 1fr 1fr; }
+  /* Hero phone stack — keep it centred and inside the viewport */
+  .device-stack {
+    width: 100%;
+    max-width: 320px;
+    min-height: 320px;
+    overflow: hidden;
+  }
+  .device { width: 160px; max-width: 52%; }
+  .device-back { width: 140px; max-width: 44%; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
