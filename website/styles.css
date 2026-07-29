@@ -531,6 +531,7 @@ a { color: inherit; text-decoration: none; }
     width: 100%;
     max-width: 320px;
     min-height: 320px;
+    padding-bottom: 40px;
     overflow: hidden;
   }
   .device { width: 160px; max-width: 52%; }
