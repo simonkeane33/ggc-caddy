@@ -369,7 +369,11 @@
           <div class="member-calc">
             <label class="member-calc-label" for="memberCount">How many members does your club have?</label>
             <div class="member-calc-row">
-              <input type="number" id="memberCount" class="member-input" value="150" min="1" max="10000" />
+              <div class="member-stepper" role="group" aria-label="Member count stepper">
+                <button type="button" class="stepper-btn stepper-decr" aria-label="Decrease members">−</button>
+                <input type="number" id="memberCount" class="member-input" value="150" min="1" max="10000" inputmode="numeric" aria-label="Number of members" />
+                <button type="button" class="stepper-btn stepper-incr" aria-label="Increase members">+</button>
+              </div>
               <div class="member-result">
                 <p class="member-result-price" id="memberPrice">€525<span class="member-result-period">/yr</span></p>
                 <p class="member-result-detail" id="memberDetail">€3.50 × 150 members</p>
