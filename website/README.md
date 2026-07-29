@@ -2,7 +2,8 @@
 
 Static marketing site for ClubCaddy - the club-branded GPS course app built for golf clubs.
 
-**Live URL:** https://website-rho-two-29.vercel.app  
+**Live URL:** https://club-caddy.vercel.app  
+**Vercel project:** https://vercel.com/simon-keanes-projects/club-caddy  
 **Project root:** `ggc-caddy/website`  
 **Framework:** Static HTML / CSS / JavaScript (no build step)
 
@@ -10,9 +11,18 @@ Static marketing site for ClubCaddy - the club-branded GPS course app built for 
 
 ## Purpose
 
-This site is for sharing with clubs, committees and prospective customers. It explains what ClubCaddy is, what members get, how the mapping/branding process works, and the Bronze/Silver/Gold pricing tiers.
+This site is for sharing with clubs, committees and prospective customers. It explains what ClubCaddy is, what members get, how the mapping/branding process works, the Bronze/Silver/Gold pricing tiers, and the premium GSPro simulator build offering.
 
 The design is intentionally simple so it can iterate quickly based on feedback.
+
+---
+
+## Branches & deployment workflow
+
+- **`sandbox`** - development branch. Push work here first to get a preview deployment.
+- **`main`** - production branch. Promote to production manually in the Vercel UI when ready.
+
+Do not run `vercel --prod` from the CLI. Manual promotion via the Vercel dashboard keeps the production alias stable and avoids the 404 alias issues caused by direct CLI deploys.
 
 ---
 
@@ -48,14 +58,23 @@ website/
 
 ## Deployment
 
-Deployed via Vercel CLI from this directory:
+The site is deployed via Vercel's Git integration, not the CLI.
 
-```bash
-cd /Users/simonkeane/ggc-caddy/website
-vercel --prod
-```
+1. Push changes to the `sandbox` branch.
+2. Vercel builds a preview deployment automatically.
+3. When you are ready to go live, merge/promote `sandbox` into `main` via the Vercel dashboard or GitHub.
 
 Because the repo root (`ggc-caddy`) contains the iOS app and other folders, the Vercel project is configured to deploy **only** the `ggc-caddy/website` directory. If importing through the Vercel UI, set the root directory to `ggc-caddy/website` and the framework preset to **Other** (static).
+
+### `vercel.json`
+
+```json
+{
+  "trailingSlash": false
+}
+```
+
+The deprecated `"public": true` property has been removed. If you see `Invalid request: should NOT have additional property public`, that means the branch being imported still has the old config.
 
 ---
 
@@ -69,6 +88,7 @@ Screenshots are stored in `img/` and should be kept under ~3 MB each for fast lo
 | `shot-course.png` | Hero background left + gallery | Required |
 | `shot-approach.png` | Hero background right + gallery | Required |
 | `shot-green3d.png` | Gallery (3D terrain) | Required |
+| `gspro-sim.jpg` | GSPro simulator build spotlight | Required |
 
 When replacing screenshots, keep filenames identical so the HTML/CSS references stay valid. Recommended size: ~936 × 2025 (80% of native) is sufficient for web while keeping files small.
 
@@ -89,9 +109,9 @@ Replace the relevant file in `img/`. Keep the filename the same. If the file is 
 Edit the `data-annual` and `data-monthly` attributes in the pricing section of `index.html`.
 
 ### Redeploy
-```bash
-vercel --prod --cwd /Users/simonkeane/ggc-caddy/website
-```
+Push to `sandbox` to get a preview. Promote to `main` via the Vercel dashboard for production.
+
+Do not use `vercel --prod` from the CLI.
 
 ---
 
