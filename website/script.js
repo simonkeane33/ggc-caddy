@@ -67,6 +67,8 @@
   var memberInput = document.getElementById("memberCount");
   var memberPriceEl = document.getElementById("memberPrice");
   var memberDetailEl = document.getElementById("memberDetail");
+  var decrBtn = document.querySelector(".stepper-decr");
+  var incrBtn = document.querySelector(".stepper-incr");
 
   function updateMemberPrice() {
     if (!memberInput || !memberPriceEl || !memberDetailEl) return;
@@ -85,8 +87,22 @@
     }
   }
 
+  function changeMemberCount(delta) {
+    if (!memberInput) return;
+    var count = parseInt(memberInput.value, 10) || 0;
+    count = Math.max(1, Math.min(10000, count + delta));
+    memberInput.value = count;
+    updateMemberPrice();
+  }
+
   if (memberInput) {
     memberInput.addEventListener("input", updateMemberPrice);
     updateMemberPrice();
+  }
+  if (decrBtn) {
+    decrBtn.addEventListener("click", function () { changeMemberCount(-1); });
+  }
+  if (incrBtn) {
+    incrBtn.addEventListener("click", function () { changeMemberCount(1); });
   }
 })();
