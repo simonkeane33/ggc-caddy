@@ -535,6 +535,7 @@ a { color: inherit; text-decoration: none; }
   }
   .device { width: 160px; max-width: 52%; }
   .device-back { width: 140px; max-width: 44%; }
+  .phone-caption { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
