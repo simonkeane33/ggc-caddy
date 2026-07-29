@@ -261,12 +261,13 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Pricing ── */
 .pricing { padding: clamp(3rem, 6vw, 5rem) 0; background: var(--white); border-top: 1px solid var(--line); }
-.billing-toggle { display: inline-flex; padding: 4px; background: var(--cream); border: 1px solid var(--line); border-radius: 999px; margin: 1.5rem auto 2.5rem; display: flex; }
+.billing-wrap { text-align: center; }
+.billing-toggle { display: inline-flex; padding: 4px; background: var(--cream); border: 1px solid var(--line); border-radius: 999px; margin: 1.5rem 0 2.5rem; }
 .billing-btn { border: 0; background: transparent; padding: 0.5rem 1.1rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--muted); transition: background 0.2s, color 0.2s; }
 .billing-btn.is-active { background: var(--green-600); color: #fff; }
 .billing-btn .save { font-size: 0.72rem; font-weight: 700; color: var(--sand-deep); margin-left: 0.3rem; }
 .billing-btn.is-active .save { color: var(--sand); }
-.tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; align-items: start; }
+.tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; align-items: stretch; }
 .tier { border: 1px solid var(--line); border-radius: var(--radius); background: var(--cream); padding: 1.75rem; position: relative; display: flex; flex-direction: column; }
 .tier-popular { border-color: var(--green-600); background: var(--white); box-shadow: var(--shadow-sm); transform: scale(1.03); }
 .tier-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--green-600); color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.3rem 0.85rem; border-radius: 999px; }
