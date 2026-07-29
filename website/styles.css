@@ -439,6 +439,27 @@ a { color: inherit; text-decoration: none; }
   .simulator-hero-body { flex-direction: column; align-items: stretch; }
 }
 
+.simulator-logos { margin-top: 3rem; text-align: center; }
+.simulator-logos-label {
+  font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.55);
+  margin: 0 0 1.25rem;
+}
+.simulator-logos-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 1.25rem 2rem;
+}
+.simulator-logos-grid img {
+  height: 32px; width: auto; max-width: 140px;
+  object-fit: contain; opacity: 0.85;
+  filter: brightness(0) invert(1);
+  transition: opacity 0.2s ease;
+}
+.simulator-logos-grid img:hover { opacity: 1; }
+@media (max-width: 560px) {
+  .simulator-logos-grid img { height: 26px; max-width: 110px; }
+}
+
 /* ── Premium / bespoke builds ── */
 .premium { padding: clamp(3rem, 6vw, 5rem) 0; background: var(--green-900); color: var(--white); }
 .premium .eyebrow { color: var(--sand); }
