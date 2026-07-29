@@ -530,9 +530,7 @@ a { color: inherit; text-decoration: none; }
   .device-stack {
     width: 100%;
     max-width: 320px;
-    min-height: 320px;
-    padding-bottom: 40px;
-    overflow: hidden;
+    min-height: 420px;
   }
   .device { width: 160px; max-width: 52%; }
   .device-back { width: 140px; max-width: 44%; }
