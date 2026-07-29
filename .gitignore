@@ -1,3 +1,4 @@
 .DS_Store
 greystones-caddy-ios/build/
 website/img/IMG_*.PNG
+.vercel
