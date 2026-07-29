@@ -62,4 +62,31 @@
       setBilling(btn.dataset.billing);
     });
   });
+
+  // Per-member pricing calculator
+  var memberInput = document.getElementById("memberCount");
+  var memberPriceEl = document.getElementById("memberPrice");
+  var memberDetailEl = document.getElementById("memberDetail");
+
+  function updateMemberPrice() {
+    if (!memberInput || !memberPriceEl || !memberDetailEl) return;
+    var count = parseInt(memberInput.value, 10) || 0;
+    if (count < 1) count = 1;
+    var raw = count * 3.50;
+    var price = Math.max(350, Math.min(1200, raw));
+    var formatted = price.toLocaleString("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+    memberPriceEl.innerHTML = formatted.replace("EUR", "€") + '<span class="member-result-period">/yr</span>';
+    if (price === 350) {
+      memberDetailEl.textContent = "€3.50 × " + count + " members — minimum applies";
+    } else if (price === 1200) {
+      memberDetailEl.textContent = "€3.50 × " + count + " members — cap applies";
+    } else {
+      memberDetailEl.textContent = "€3.50 × " + count + " members";
+    }
+  }
+
+  if (memberInput) {
+    memberInput.addEventListener("input", updateMemberPrice);
+    updateMemberPrice();
+  }
 })();

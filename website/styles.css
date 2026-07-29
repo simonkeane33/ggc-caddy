@@ -284,6 +284,63 @@ a { color: inherit; text-decoration: none; }
 .pricing-foot { text-align: center; margin-top: 2rem; color: var(--muted); }
 .pricing-foot a { color: var(--green-700); font-weight: 600; }
 
+/* Setup fee call-out */
+.setup-callout {
+  display: flex; align-items: flex-start; gap: 1rem;
+  max-width: 40rem; margin: 2rem auto 0;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--cream);
+  border: 1px solid var(--line);
+}
+.setup-callout p { margin: 0; font-size: 0.95rem; color: var(--muted); }
+.setup-callout strong { color: var(--green-700); }
+.setup-icon { font-size: 1.4rem; line-height: 1; }
+
+/* Per-member pricing */
+.member-pricing {
+  max-width: 40rem; margin: 2.5rem auto 0;
+  padding: 2rem;
+  border-radius: var(--radius);
+  background: var(--cream);
+  border: 1px solid var(--line);
+}
+.member-pricing-head { text-align: center; margin-bottom: 1.5rem; }
+.member-pricing-head h3 {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; margin: 0 0 0.4rem; color: var(--green-700);
+}
+.member-pricing-lead { margin: 0; color: var(--muted); font-size: 0.98rem; }
+
+.member-calc { margin-bottom: 1.25rem; }
+.member-calc-label {
+  display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--ink);
+}
+.member-calc-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 0.75rem;
+}
+.member-input {
+  width: 8rem; padding: 0.65rem 1rem; font-size: 1.1rem; font-weight: 700;
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--white); color: var(--ink); font-family: var(--font-body);
+}
+.member-input:focus { outline: none; border-color: var(--green-600); }
+.member-result { flex: 1; min-width: 12rem; }
+.member-result-price {
+  font-family: var(--font-display); font-weight: 700; font-size: 2rem;
+  color: var(--green-700); margin: 0;
+}
+.member-result-period { font-size: 1rem; color: var(--muted); margin-left: 0.2rem; }
+.member-result-detail { margin: 0.1rem 0 0; font-size: 0.88rem; color: var(--muted); }
+.member-calc-note { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.member-cta { margin-top: 0.5rem; }
+
+/* Premium price bands */
+.price-band {
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--green-900);
+  background: var(--sand); padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+}
+
 .simulator { padding: clamp(3rem, 6vw, 5rem) 0; background: var(--green-800); color: var(--white); }
 .simulator .eyebrow { color: var(--sand); }
 .simulator .display { color: var(--white); }
@@ -335,7 +392,6 @@ a { color: inherit; text-decoration: none; }
 .premium-icon { font-size: 1.5rem; width: 48px; height: 48px; display: grid; place-items: center; background: var(--green-600); border-radius: 12px; margin-bottom: 1rem; }
 .premium-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
 .premium-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; margin: 0; color: var(--white); }
-.poa { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green-900); background: var(--sand); padding: 0.25rem 0.6rem; border-radius: 999px; white-space: nowrap; }
 .premium-card p { margin: 0; color: rgba(255,255,255,0.78); font-size: 0.96rem; }
 .premium-cta { text-align: center; margin-top: 2.5rem; }
 .premium-cta p { margin: 0 0 1rem; color: rgba(255,255,255,0.8); }
