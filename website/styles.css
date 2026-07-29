@@ -527,13 +527,14 @@ a { color: inherit; text-decoration: none; }
   .feature-grid { grid-template-columns: 1fr; }
   .case-stats { grid-template-columns: 1fr 1fr; }
   /* Hero phone stack — keep it centred and inside the viewport */
+  .hero { padding: 1.25rem 0 0.75rem; }
   .device-stack {
     width: 100%;
-    max-width: 320px;
-    min-height: 420px;
+    max-width: 340px;
+    min-height: 460px;
   }
-  .device { width: 160px; max-width: 52%; }
-  .device-back { width: 140px; max-width: 44%; }
+  .device { width: 190px; max-width: 56%; }
+  .device-back { width: 165px; max-width: 48%; }
   .phone-caption { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
