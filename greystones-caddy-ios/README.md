@@ -7,8 +7,8 @@ Phone-only shot tracker + digital scorecard for **Greystones Golf Club**.
 - SQLite via **GRDB** (Swift Package Manager)
 
 ## Repo layout (this folder)
-- `CourseData/greystones_course.json` — hole metadata (par, SI, distances, flyover links)
-- `GreystonesCaddyCore/` — Swift Package (models + storage + course loader)
+- `CourseData/greystones_course.json` - hole metadata (par, SI, distances, flyover links)
+- `GreystonesCaddyCore/` - Swift Package (models + storage + course loader)
 
 ## First-time setup (Xcode)
 1. **Create the iOS app project**

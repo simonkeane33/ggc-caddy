@@ -11,8 +11,8 @@ The vault holds the complete step-by-step workflow from KML import to JSON in Xc
 
 ## Developer-Local Context
 
-- **Repo tools:** `tools/prepare_green.py` — run with `--hole`, `--tif`, `--geojson`, `--out`
+- **Repo tools:** `tools/prepare_green.py` - run with `--hole`, `--tif`, `--geojson`, `--out`
 - **App loader:** `GreenTerrainData.load(hole:)` expects `H{02d}_green_data.json` in the bundle
-- **Related repo doc:** `docs/green-3d-rendering.md` — app architecture, rendering pipeline
+- **Related repo doc:** `docs/green-3d-rendering.md` - app architecture, rendering pipeline
 
 Do not maintain a duplicate full version here. The vault is the authoritative home for this operational scaling workflow.

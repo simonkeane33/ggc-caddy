@@ -600,7 +600,7 @@ a { color: inherit; text-decoration: none; }
   .mobile-menu:not([hidden]) { display: flex; }
   .feature-grid { grid-template-columns: 1fr; }
   .case-stats { grid-template-columns: 1fr 1fr; }
-  /* Hero phone stack — keep it centred and inside the viewport */
+  /* Hero phone stack - keep it centred and inside the viewport */
   .hero { padding: 1.25rem 0 0.75rem; }
   .device-stack {
     width: 100%;

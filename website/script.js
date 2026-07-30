@@ -79,9 +79,9 @@
     var formatted = price.toLocaleString("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
     memberPriceEl.innerHTML = formatted.replace("EUR", "€") + '<span class="member-result-period">/yr</span>';
     if (price === 350) {
-      memberDetailEl.textContent = "€3.50 × " + count + " members — minimum applies";
+      memberDetailEl.textContent = "€3.50 × " + count + " members - minimum applies";
     } else if (price === 1200) {
-      memberDetailEl.textContent = "€3.50 × " + count + " members — cap applies";
+      memberDetailEl.textContent = "€3.50 × " + count + " members - cap applies";
     } else {
       memberDetailEl.textContent = "€3.50 × " + count + " members";
     }
