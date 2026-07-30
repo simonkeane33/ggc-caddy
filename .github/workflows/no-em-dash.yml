@@ -1,0 +1,31 @@
+name: No Em Dash
+
+on:
+  pull_request:
+    branches: [main, sandbox]
+  push:
+    branches: [main, sandbox]
+
+jobs:
+  lint-no-em-dash:
+    name: Check for em dashes in docs and website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check website files
+        run: |
+          set +e
+          RESULT=0
+          # Check all text files under website/ for em dash (U+2014)
+          if grep -rI '—' website/; then
+            echo "::error::Em dash found in website/ files. Replace with a hyphen (-)."
+            RESULT=1
+          fi
+          # Check all text files under docs/ for em dash
+          if grep -rI '—' greystones-caddy-ios/docs/; then
+            echo "::error::Em dash found in docs/ files. Replace with a hyphen (-)."
+            RESULT=1
+          fi
+          exit $RESULT

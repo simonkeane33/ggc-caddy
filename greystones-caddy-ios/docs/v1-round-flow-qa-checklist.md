@@ -100,7 +100,7 @@ See also:
 ## Edge Cases
 
 - **No GPS**: Shot capture may use last known location or placeholder
-- **Empty hole_scores**: Total score/putts show 0 or — until scores entered
+- **Empty hole_scores**: Total score/putts show 0 or - until scores entered
 - **Legacy rounds without completionState**: Treated as completed if `endedAt` set
 - **Stableford rounds**: Stableford UI may show for rounds with `gameType == .stableford`; v1 focus is stroke play
 
